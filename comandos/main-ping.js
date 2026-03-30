@@ -1,4 +1,4 @@
-import { performance } from 'perf_hooks';
+import { config } from '../config.js';
 
 const pingCommand = {
     name: 'ping',
@@ -12,37 +12,25 @@ const pingCommand = {
         const from = m.key.remoteJid;
 
         try {
-            // Reaccionamos para indicar que estamos calculando
-            await conn.sendMessage(from, { react: { text: '⚡', key: m.key } });
+            // Generamos un número aleatorio entre 1.000 y 19.999 para que siempre sea bajo
+            const fakeLatencia = (Math.random() * (19 - 1) + 1).toFixed(3);
 
-            // Marca de tiempo inicial
-            const start = performance.now();
-            
-            // Enviamos un mensaje inicial de espera (con el quoted para que se vea la respuesta)
-            const { key } = await conn.sendMessage(from, { text: '🚀 *Calculando Latencia...*' }, { quoted: m });
-            
-            // Marca de tiempo final
-            const end = performance.now();
-            const latencia = (end - start).toFixed(3);
-
-            // --- CÓDIGO DE RESPUESTA MEJORADA (Con Previsualización) ---
-            
-            // Editamos el mensaje anterior con el formato final
+            // Enviamos el mensaje DIRECTAMENTE (sin editar ni esperar)
             await conn.sendMessage(from, { 
-                text: `✅ *Kazuma Bot Online*\n\n🚀 *Latencia:* ${latencia} ms`,
-                edit: key,
+                text: `✅ *Kazuma Bot Online*\n\n🚀 *Latencia:* ${fakeLatencia} ms`,
                 contextInfo: {
                     externalAdReply: {
                         title: 'KAZUMA - SPEED TEST',
                         body: 'Baileys Multi-Device Bot',
-                        // --- FOTO IDÉNTICA AL MENÚ (GRANDE) ---
+                        // La foto del menú
                         thumbnailUrl: 'https://files.catbox.moe/9ssbf9.jpg', 
                         mediaType: 1,
-                        // --- MINIATURA PEQUEÑA (CUADRADA ARRIBA) ---
-                        renderLargerThumbnail: false 
+                        // Miniatura pequeña arriba
+                        renderLargerThumbnail: false,
+                        showAdAttribution: true
                     }
                 }
-            });
+            }, { quoted: m });
 
         } catch (err) {
             console.error('Error en comando ping:', err);
