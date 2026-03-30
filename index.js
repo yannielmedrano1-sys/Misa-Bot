@@ -17,7 +17,6 @@ import CFonts from 'cfonts';
 import { config } from './config.js';
 import { logger } from './config/print.js';
 import { pixelHandler } from './pixel.js';
-// --- IMPORTACIÓN DE SUB-BOTS ---
 import { loadAllSubBots } from './sockets/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -26,15 +25,14 @@ const __dirname = path.dirname(__filename);
 const rl = createInterface({ input: process.stdin, output: process.stdout });
 const question = (text) => new Promise((resolve) => rl.question(text, resolve));
 
-// --- VARIABLES GLOBALES ---
 global.commands = new Map();
 global.totalCommandsUsed = 0; 
 
-// --- FUNCIÓN GLOBAL DE CARGA ---
+// --- CARGA DE COMANDOS ESTÉTICA ---
 global.loadCommands = async () => {
+    process.stdout.write(chalk.cyan('  [⚙️] Cargando módulos de comandos... '));
     const commandsPath = path.resolve(__dirname, 'comandos');
     if (!fs.existsSync(commandsPath)) fs.mkdirSync(commandsPath);
-
     global.commands.clear();
     const files = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
     
@@ -43,25 +41,30 @@ global.loadCommands = async () => {
             const filePath = path.join(commandsPath, file);
             const fileUrl = pathToFileURL(filePath).href;
             const module = await import(`${fileUrl}?update=${Date.now()}`);
-            
             if (module.default && module.default.name) {
                 global.commands.set(module.default.name, module.default);
             }
         } catch (e) {
-            console.log(chalk.red(`[ERROR] En ${file}:`), e.message);
+            console.log(chalk.red(`\n  [❌] Error en ${file}:`), e.message);
         }
     }
-    console.log(chalk.cyan(`📊 Comandos cargados correctamente.`));
+    process.stdout.write(chalk.greenBright(`LISTO (${global.commands.size})\n`));
 };
 
 async function startBot() {
     const { state, saveCreds } = await useMultiFileAuthState('sesion_bot');
     const { version } = await fetchLatestBaileysVersion();
 
-    if (!state.creds.registered) {
-        process.stdout.write('\x1Bc');
-        CFonts.say('KAZUMA', { font: 'block', align: 'center', colors: ['cyan', 'magenta', 'yellow'] });
-    }
+    // BANNER INICIAL
+    process.stdout.write('\x1Bc');
+    CFonts.say('KAZUMA', { 
+        font: 'block', align: 'center', colors: ['cyan', 'magenta'], background: 'transparent', letterSpacing: 1 
+    });
+    console.log(chalk.gray('  ' + '─'.repeat(50)));
+    console.log(chalk.cyan('  [📱] SISTEMA:') + chalk.white(` Kazuma Bot Multi-Device`));
+    console.log(chalk.cyan('  [👤] DEVELOPER:') + chalk.white(` Félix OFC`));
+    console.log(chalk.cyan('  [🛠️] BAILEYS:') + chalk.white(` v${version.join('.')}`));
+    console.log(chalk.gray('  ' + '─'.repeat(50)) + '\n');
 
     const conn = makeWASocket({
         version,
@@ -77,17 +80,29 @@ async function startBot() {
 
     await global.loadCommands();
 
+    // VINCULACIÓN ESTÉTICA
     if (!conn.authState.creds.registered) {
-        let phoneNumber = await question(chalk.greenBright('\n -> Introduce tu número: '));
+        console.log(chalk.yellow('\n  ╔══════════════════════════════════════════╗'));
+        console.log(chalk.yellow('  ║    VINCULACIÓN DEL BOT PRINCIPAL         ║'));
+        console.log(chalk.yellow('  ╚══════════════════════════════════════════╝'));
+        
+        let phoneNumber = await question(chalk.cyan('\n  [?] Introduce tu número (ej: 1849XXXXXXX):\n  > '));
         phoneNumber = phoneNumber.replace(/[^0-9]/g, '');
+
+        if (!phoneNumber) {
+            console.log(chalk.red('\n  [!] ERROR: Número no válido. Reinicia el panel.'));
+            process.exit(0);
+        }
+
+        console.log(chalk.blue('\n  [⏳] Solicitando código a WhatsApp...'));
 
         setTimeout(async () => {
             try {
                 let code = await conn.requestPairingCode(phoneNumber);
                 code = code?.match(/.{1,4}/g)?.join('-') || code;
-                console.log(chalk.black.bgCyan('\n CÓDIGO DE VINCULACIÓN: ') + chalk.bold.white(` ${code} `) + '\n');
+                console.log('\n  ' + chalk.bgCyan.black.bold(` CÓDIGO: ${code} `) + '\n');
             } catch (error) {
-                console.error(chalk.red('Error:'), error);
+                console.error(chalk.red('  [!] Error:'), error);
             }
         }, 3000);
     }
@@ -96,14 +111,25 @@ async function startBot() {
 
     conn.ev.on('connection.update', async (update) => {
         const { connection, lastDisconnect } = update;
+
         if (connection === 'close') {
-            const shouldReconnect = lastDisconnect.error?.output?.statusCode !== DisconnectReason.loggedOut;
-            if (shouldReconnect) startBot();
-        } else if (connection === 'open') {
-            console.log(chalk.green.bold('\n✅ KAZUMA PRINCIPAL ONLINE'));
+            const isLoggedOut = lastDisconnect.error?.output?.statusCode === DisconnectReason.loggedOut;
             
-            // --- ACTIVACIÓN AUTOMÁTICA DE SUB-BOTS ---
-            // Al abrir el principal, cargamos todos los sockets secundarios
+            if (isLoggedOut) {
+                console.log(chalk.red.bold('\n  ┌──────────────────────────────────────────┐'));
+                console.log(chalk.red.bold('  │       SESIÓN CERRADA / INVALIDADA        │'));
+                console.log(chalk.red.bold('  └──────────────────────────────────────────┘'));
+                console.log(chalk.white('  1. Borra la carpeta "sesion_bot" en Files.'));
+                console.log(chalk.white('  2. Reinicia el servidor (Restart).'));
+                console.log(chalk.white('  3. Vuelve a vincular tu número.\n'));
+            } else {
+                console.log(chalk.yellow('  [!] Conexión perdida... reintentando.'));
+                startBot();
+            }
+        } else if (connection === 'open') {
+            console.log(chalk.greenBright.bold('\n  [✨] ¡CONECTADO CON ÉXITO!'));
+            console.log(chalk.gray('  ' + '─'.repeat(50)));
+            // Cargar sub-bots
             await loadAllSubBots(conn);
         }
     });
@@ -112,6 +138,7 @@ async function startBot() {
         const m = chatUpdate.messages[0];
         if (!m.message || m.key.fromMe) return;
 
+        // Lógica de conteo de comandos
         const type = Object.keys(m.message)[0];
         const body = (type === 'conversation') ? m.message.conversation : 
                      (type === 'extendedTextMessage') ? m.message.extendedTextMessage.text : 
