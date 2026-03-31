@@ -12,57 +12,63 @@ const listSocketsCommand = {
     isOwner: false,
     isAdmin: false,
     isGroup: true, 
-    noPrefix: true, // Para que funcione con o sin prefijo
+    noPrefix: true, 
 
-    run: async (conn, m, { isGroup }) => {
+    run: async (conn, m) => {
         const from = m.chat;
 
         try {
-            // 1. Obtener datos frescos del grupo (Evitamos depender de parámetros externos)
+            // 1. Obtener participantes del grupo de forma segura
             const groupMetadata = await conn.groupMetadata(from).catch(() => null);
-            if (!groupMetadata) return m.reply('❌ Error: No se pudo obtener la información del grupo.');
+            if (!groupMetadata) return; // Si no hay metadata, no responde para no dar error
 
-            // 2. Ruta de sesiones (Ajustada a la estructura de Kazuma)
+            const participants = groupMetadata.participants.map(p => p.id);
+            const mainBotJid = conn.user.id.split(':')[0] + '@s.whatsapp.net';
+
+            // 2. Escaneo de la carpeta de sesiones
             const sessionsPath = path.resolve('./sesiones_subbots');
-            let totalSubBots = 0;
+            let sessionFolders = [];
             if (fs.existsSync(sessionsPath)) {
-                totalSubBots = fs.readdirSync(sessionsPath).filter(f => {
-                    const fullPath = path.join(sessionsPath, f);
-                    return fs.statSync(fullPath).isDirectory() && !f.startsWith('.');
-                }).length;
+                sessionFolders = fs.readdirSync(sessionsPath).filter(f => {
+                    return fs.statSync(path.join(sessionsPath, f)).isDirectory() && !f.startsWith('.');
+                });
             }
 
-            // 3. Identificar Sockets Activos
-            const mainBotJid = conn.user.id.split(':')[0] + '@s.whatsapp.net';
-            const activeSubBotsJids = global.subBots ? Array.from(global.subBots.keys()) : []; 
-
-            // Filtro con soporte LID integrado directamente aquí
-            const botsInGroup = groupMetadata.participants.filter(p => {
-                const jid = p.id;
-                const lid = p.lid || null;
-                return jid === mainBotJid || activeSubBotsJids.includes(jid) || (lid && activeSubBotsJids.includes(lid));
-            });
-
-            // 4. Construir menciones visuales
             let mentionsJid = [];
-            let listaMenciones = "";
+            let listaFinal = "";
+            let botsEncontrados = 0;
 
-            botsInGroup.forEach((bot) => {
-                const jid = bot.id; 
-                mentionsJid.push(jid);
-                listaMenciones += `   ➪ @${jid.split('@')[0]}\n`;
+            // 3. LÓGICA DE PRIORIDAD: EL PRINCIPAL PRIMERO
+            if (participants.includes(mainBotJid)) {
+                mentionsJid.push(mainBotJid);
+                listaFinal += `   *➪ @${mainBotJid.split('@')[0]}* » (Principal)\n`;
+                botsEncontrados++;
+            }
+
+            // 4. LÓGICA DE SUBS: Escaneo por archivos
+            sessionFolders.forEach(folder => {
+                // Limpiamos el nombre de la carpeta para obtener solo el número
+                const rawNumber = folder.replace(/\D/g, '');
+                const subJid = `${rawNumber}@s.whatsapp.net`;
+
+                // Si el sub-bot está en el grupo y no es el principal (para no repetir)
+                if (participants.includes(subJid) && subJid !== mainBotJid) {
+                    mentionsJid.push(subJid);
+                    listaFinal += `   *➪ @${rawNumber}* » (Sub-Bot)\n`;
+                    botsEncontrados++;
+                }
             });
 
-            // 5. Cuerpo del mensaje (Estilo Kurayami)
+            // 5. Construcción del mensaje
             const texto = `
 ✿︎ \`LISTA DE SOCKETS ACTIVOS\` ✿︎
 
 *❁ Principal » 1*
-*❀ Sub-Bots » ${totalSubBots}*
+*❀ Sub-Bots Totales » ${sessionFolders.length}*
 
-*⌨︎ Nodos en este grupo » ${botsInGroup.length}*
+*⌨︎ Nodos en este grupo » ${botsEncontrados}*
 
-${listaMenciones || "_No se detectaron más nodos de la red._"}
+${listaFinal || "_No se detectaron nodos de la red en este chat._"}
 `.trim();
 
             await conn.sendMessage(from, { 
@@ -80,7 +86,7 @@ ${listaMenciones || "_No se detectaron más nodos de la red._"}
             }, { quoted: m });
 
         } catch (err) {
-            console.error('Error en socket monitor:', err);
+            console.error('Error en socket monitor (Filesystem Mode):', err);
         }
     }
 };
