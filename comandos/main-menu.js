@@ -47,13 +47,13 @@ const menuCommand = {
                 text: textoMenu,
                 contextInfo: {
                     externalAdReply: {
-                        title: '🔱 KAZUMA - ENGINE',
-                        body: 'Developed by Félix OFC',
+                        title: 'Kazuma',
+                        body: 'Kazuma Bot | Developed by félix',
                         thumbnailUrl: 'https://files.catbox.moe/9ssbf9.jpg', 
                         sourceUrl: 'https://panel.kurayamihost.ooguy.com', // Tu dominio de panel
                         mediaType: 1,
                         renderLargerThumbnail: true, // Imagen grande estilo Canal
-                        showAdAttribution: false // Quitamos "Anuncio" para que sea más limpio
+                        showAdAttribution: false // Quitamos "Antes"
                     }
                 }
             }, { quoted: m });
