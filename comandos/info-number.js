@@ -1,49 +1,20 @@
-/* KURAYAMI TEAM - ID EXTRACTOR ESM
-   Estrategia: Detección de identidad en contexto (JID/LID)
-   Desarrollado por Félix OFC
+/* KURAYAMI TEAM - CONTEXT STRATEGY
+   Estrategia de Identidad JID/LID
 */
 
 export default {
     name: 'quiensoy',
-    alias: ['number', 'id', 'miid'],
+    alias: ['number', 'id'],
     category: 'info',
-    noPrefix: true, // Prioridad absoluta para que responda siempre
+    noPrefix: true, 
 
-    run: async (conn, m, { config }) => {
-        try {
-            // Capturamos el remitente exacto que envía el evento
-            const userNumber = m.sender; 
-            const pureNumber = userNumber.split('@')[0];
-
-            const texto = `
-★ DETECTOR DE IDENTIDAD ★
-
-*Tu ID completo:* ${userNumber}
-
-*Tu número/identidad limpia:* ${pureNumber}
-
-> ¡Usa esta información con cabeza!`.trim();
-
-            await conn.sendMessage(m.chat, { 
-                text: texto,
-                contextInfo: {
-                    externalAdReply: {
-                        title: 'KAZUMA IDENTITY SCAN',
-                        body: 'Extrayendo metadatos del remitente...',
-                        thumbnailUrl: 'https://files.catbox.moe/9ssbf9.jpg', // Tu imagen de preferencia
-                        mediaType: 1,
-                        showAdAttribution: true
-                    }
-                }
-            }, { quoted: m });
-
-            // Log en consola para que lo copies desde el panel sin errores
-            console.log('\n' + '─'.repeat(30));
-            console.log(' [🆔] IDENTIDAD DETECTADA:', userNumber);
-            console.log('─'.repeat(30) + '\n');
-
-        } catch (err) {
-            console.error('Error en el detector de número:', err);
-        }
+    run: async (conn, m) => {
+        const userNumber = m.sender; // Número completo capturado por Baileys
+        
+        await conn.sendMessage(
+            m.chat,
+            { text: `Tu número es:\n${userNumber}\n\nSolo la parte antes de @ es: ${userNumber.split('@')[0]}` },
+            { quoted: m }
+        );
     }
 };
