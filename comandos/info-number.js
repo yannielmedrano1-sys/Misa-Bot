@@ -1,50 +1,50 @@
-/* KURAYAMI TEAM - ID HUNTER ENGINE 
-   Desarrollado por Félix OFC para Kamuza Mister Bot
-   Propósito: Debug de Identidad (JID/LID)
+/* KURAYAMI TEAM - ID EXTRACTOR ESM
+   Estrategia: Detección de identidad en contexto (JID/LID)
+   Desarrollado por Félix OFC
 */
 
 export default {
-    name: 'number',
-    alias: ['id', 'myid', 'identidad'],
+    name: 'quiensoy',
+    alias: ['number', 'id', 'miid'],
     category: 'info',
-    noPrefix: true, // Prioridad absoluta como pediste
+    noPrefix: true, // Prioridad absoluta para que responda siempre
 
-    run: async (conn, m) => {
+    run: async (conn, m, { config }) => {
         try {
-            // Extraemos los datos crudos del mensaje
-            const jid = m.key.participant || m.key.remoteJid;
-            const lid = m.messageStubParameters && m.messageStubParameters[0] ? m.messageStubParameters[0] : (m.pushName ? 'No detectado en este evento' : 'Buscando...');
-            
-            // Intentamos sacar el LID de las propiedades internas de Baileys si están disponibles
-            const alternativeLid = m.sender || jid;
+            // Capturamos el remitente exacto que envía el evento
+            const userNumber = m.sender; 
+            const pureNumber = userNumber.split('@')[0];
 
             const texto = `
-★ INFO NUMBER ★
+★ DETECTOR DE IDENTIDAD ★
 
-*Jid:* ${jid}
-*Lid:* ${m.sender || 'No disponible'}
+*Tu ID completo:* ${userNumber}
 
-> ¡Úsalo con sabiduría! 😈
+*Tu número/identidad limpia:* ${pureNumber}
+
+> ¡Usa esta información con cabeza!
 `.trim();
 
             await conn.sendMessage(m.chat, { 
                 text: texto,
                 contextInfo: {
                     externalAdReply: {
-                        title: 'KURAYAMI ID-SCANNER',
-                        body: 'Extrayendo metadatos de red...',
-                        thumbnailUrl: 'https://files.catbox.moe/9ssbf9.jpg',
+                        title: 'KAZUMA IDENTITY SCAN',
+                        body: 'Extrayendo metadatos del remitente...',
+                        thumbnailUrl: 'https://files.catbox.moe/9ssbf9.jpg', // Tu imagen de preferencia
                         mediaType: 1,
                         showAdAttribution: true
                     }
                 }
             }, { quoted: m });
 
-            // Log en consola para que tú lo veas en el panel también
-            console.log(`\n[🔍] ESCANEO DE ID:\nUser: ${m.pushName}\nJID: ${jid}\nSENDER: ${m.sender}\n`);
+            // Log en consola para que lo copies desde el panel sin errores
+            console.log('\n' + '─'.repeat(30));
+            console.log(' [🆔] IDENTIDAD DETECTADA:', userNumber);
+            console.log('─'.repeat(30) + '\n');
 
         } catch (err) {
-            console.error('Error en comando number:', err);
+            console.error('Error en el detector de número:', err);
         }
     }
 };
