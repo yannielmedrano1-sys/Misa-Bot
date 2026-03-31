@@ -5,7 +5,7 @@
 import fs from 'fs';
 import path from 'path';
 
-const command = {
+export default {
     name: 'sockets',
     alias: ['code', 'bots'],
     category: 'sockets',
@@ -35,12 +35,12 @@ const command = {
 
             const texto = `✿︎ \`LISTA DE BOTS ACTIVOS\` ✿︎\n\n*❁ Principal » 1*\n*❀ Subs Totales » ${totalSubs}*\n\n*📊 LISTA DETALLADA:*\n${listaBots}`;
 
-            await conn.sendMessage(m.chat, { 
+            await conn.sendMessage(m.chat || m.key.remoteJid, { 
                 text: texto.trim(),
                 contextInfo: {
                     externalAdReply: {
                         title: 'KAZUMA - BOTS STATUS',
-                        body: 'Red de Bots Kurayami',
+                        body: 'Lista de bots activos en la red',
                         thumbnailUrl: 'https://files.catbox.moe/9ssbf9.jpg',
                         mediaType: 1,
                         renderLargerThumbnail: false
@@ -53,5 +53,3 @@ const command = {
         }
     }
 };
-
-export default command;
