@@ -1,68 +1,67 @@
 /* KURAYAMI TEAM - PIXEL HANDLER ENGINE 
-   Desarrollado por Félix OFC para Kamuza Mister Bot
+   Soporte Multi-Prefijo y LID Sync
 */
 
-import chalk from 'chalk';
 import { syncLid } from './lid/resolver.js'; 
 
-/**
- * Handler principal - El corazón del procesamiento de Kazuma
- */
 export const pixelHandler = async (conn, m, config) => {
     try {
         if (!m || !m.message) return;
         const chat = m.key.remoteJid;
-        if (chat === 'status@broadcast') return;
 
-        // 1. --- MOTOR LID (NORMALIZACIÓN DE IDENTIDAD) ---
+        // 1. LID SYNC (Reconocimiento de Owner Pase lo que pase)
         try { 
             m.sender = await syncLid(conn, m, chat); 
         } catch (e) {
             m.sender = m.key.participant || m.key.remoteJid;
         }
 
-        // 2. --- EXTRACCIÓN DE CUERPO DEL MENSAJE ---
+        // 2. Extraer Body
         const type = Object.keys(m.message)[0];
         const body = (type === 'conversation') ? m.message.conversation : 
                      (type === 'extendedTextMessage') ? m.message.extendedTextMessage.text : 
-                     (m.message[type] && m.message[type].caption) ? m.message[type].caption : 
-                     (type === 'buttonsResponseMessage') ? m.message.buttonsResponseMessage.selectedButtonId : 
-                     (type === 'listResponseMessage') ? m.message.listResponseMessage.singleSelectReply.selectedRowId : '';
+                     (m.message[type] && m.message[type].caption) ? m.message[type].caption : '';
 
-        // 3. --- LÓGICA DE COMANDO Y PREFIJOS ---
-        const prefix = config.prefix || '!'; 
-        const isCmd = body.startsWith(prefix);
+        if (!body) return;
+
+        // 3. LÓGICA DE PREFIJO DINÁMICO
+        // Revisamos si el mensaje empieza con el prefijo ACTUAL de la config
+        const activePrefix = config.prefix;
+        const isCmd = body.startsWith(activePrefix);
         
-        // Identificamos el nombre del comando (manejando con y sin prefijo)
-        const commandName = isCmd 
-            ? body.slice(prefix.length).trim().split(/ +/).shift().toLowerCase() 
-            : body.trim().split(/ +/).shift().toLowerCase();
-        
+        // Extraer el nombre del comando
+        let commandName = '';
+        if (isCmd) {
+            commandName = body.slice(activePrefix.length).trim().split(/ +/).shift().toLowerCase();
+        } else {
+            // Lógica NO-PREFIX: toma la primera palabra directamente
+            commandName = body.trim().split(/ +/).shift().toLowerCase();
+        }
+
         const args = body.trim().split(/ +/).slice(1);
         const text = args.join(' ');
 
-        // 4. --- VALIDACIONES DE PODER (OWNER / GROUP) ---
+        // 4. Validaciones de Identidad
         const owners = Array.isArray(config.owner) ? config.owner : [];
         const isOwner = [conn.user.id.split(':')[0], ...owners].some(num => m.sender.includes(num));
         const isGroup = chat.endsWith('@g.us');
 
-        // 5. --- BÚSQUEDA Y EJECUCIÓN DEL MÓDULO ---
+        // 5. Búsqueda del Comando
         const cmd = global.commands.get(commandName) || 
                     Array.from(global.commands.values()).find(c => c.alias && c.alias.includes(commandName));
 
         if (cmd) {
-            // Filtros de Seguridad basados en el comando
-            if (cmd.isOwner && !isOwner) {
-                return m.reply(`❌ ${config.botName || 'Bot'}: Acceso denegado.`);
-            }
-            if (cmd.isGroup && !isGroup) {
-                return m.reply(`❌ ${config.botName || 'Bot'}: Este comando es exclusivo para grupos.`);
-            }
+            // REGLA DE ORO: Si no hay prefijo, solo responde si el comando permite 'noPrefix'
+            if (!isCmd && !cmd.noPrefix) return; 
 
-            // Ejecución inyectando todas las herramientas necesarias
+            // Filtros de Owner y Grupo
+            if (cmd.isOwner && !isOwner) return m.reply('❌ Acceso exclusivo al Desarrollador.');
+            if (cmd.isGroup && !isGroup) return m.reply('❌ Este comando es para grupos.');
+
+            // Ejecución
             await cmd.run(conn, m, { 
                 body, 
-                prefix, 
+                prefix: activePrefix, // Aquí siempre pasará el prefijo activo (#, ! o .)
                 command: commandName, 
                 args, 
                 text, 
@@ -73,8 +72,6 @@ export const pixelHandler = async (conn, m, config) => {
         }
 
     } catch (err) {
-        // Log de error con la estética de Kazuma
-        console.error(chalk.red.bold('\n[❌] ERROR CRÍTICO EN PIXEL HANDLER:'));
-        console.error(chalk.magenta(err.stack || err));
+        console.error(err);
     }
 };
