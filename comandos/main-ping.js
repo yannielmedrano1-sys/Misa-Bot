@@ -17,22 +17,22 @@ const pingCommand = {
         const from = m.key.remoteJid;
 
         try {
-            // Generamos un número aleatorio entre 1.000 y 19.999 para que siempre sea bajo
+            // Generamos un número aleatorio bajo para la estética
             const fakeLatencia = (Math.random() * (19 - 1) + 1).toFixed(3);
 
-            // Enviamos el mensaje DIRECTAMENTE (sin editar ni esperar)
             await conn.sendMessage(from, { 
                 text: `✅ *Kazuma Bot Online*\n\n🚀 *Latencia:* ${fakeLatencia} ms`,
                 contextInfo: {
                     externalAdReply: {
                         title: 'KAZUMA - SPEED TEST',
-                        body: 'Baileys Multi-Device Bot',
-                        // La foto del menú
+                        body: 'Latencia del Servidor',
                         thumbnailUrl: 'https://files.catbox.moe/9ssbf9.jpg', 
+                        sourceUrl: 'https://panel.kurayamihost.ooguy.com',
                         mediaType: 1,
-                        // Miniatura pequeña arriba
+                        // Renderizado pequeño (miniatura lateral)
                         renderLargerThumbnail: false,
-                        showAdAttribution: true
+                        // Quitamos la etiqueta de "Anuncio"
+                        showAdAttribution: false
                     }
                 }
             }, { quoted: m });
