@@ -7,7 +7,7 @@ import path from 'path';
 
 export default {
     name: 'sockets',
-    alias: ['code', 'bots'],
+    alias: ['sockets', 'bots'],
     category: 'sockets',
     run: async (conn, m) => {
         try {
