@@ -6,11 +6,8 @@
 import chalk from 'chalk';
 import { config } from './config.js';
 import { logger } from './config/print.js';
-import { syncLid } from './lid/resolver.js'; // Importamos tu nuevo motor LID
+import { syncLid } from './lid/resolver.js'; 
 
-/**
- * Handler principal para procesar mensajes entrantes
- */
 export const pixelHandler = async (conn, m) => {
     try {
         if (!m.message) return;
