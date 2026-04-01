@@ -6,7 +6,6 @@ export default {
     name: 'prueba',
     alias: ['testowner', 'check'],
     category: 'owner',
-    isOwner: true, // LA PRUEBA DE FUEGO
 
     run: async (conn, m, { config }) => {
         // Capturamos la identidad exacta que el Handler le pasó al comando
