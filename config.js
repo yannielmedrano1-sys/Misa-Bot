@@ -1,5 +1,5 @@
 export const config = {
-    botName: 'Kazuma - Bot',
+    botName: 'Misa Bot',
     // Tus dos identidades oficiales para reconocimiento total
     owner: [
         '573508941325@s.whatsapp.net', 
