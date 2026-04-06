@@ -22,7 +22,7 @@ const pingCommand = {
             const fakeLatencia = (Math.random() * (19 - 1) + 1).toFixed(3);
 
             await conn.sendMessage(from, { 
-                text: `✅ *𝓜𝓲𝓼𝓪  𝘽𝙊𝙏 Online*\n\n 
+                text: `❀ *𝓜𝓲𝓼𝓪  𝘽𝙊𝙏 Online* 
                 ✰ *Latencia*: \`${fakeLatencia} ms\``,
                 
                 contextInfo: {
