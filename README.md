@@ -112,18 +112,32 @@ Este proyecto cuenta con el apoyo de inteligencia artificial avanzada para optim
 ## 👑 CREADOR
 El cerebro detrás de toda la arquitectura de Misa y la red de sockets.
 
+## 👑 CREADOR
+
+El cerebro detrás de toda la arquitectura de Misa y la red de sockets.
+
+
+
 <table align="center">
-  <tr>
-    <td align="center">
-      <a href="https://github.com/yannielmedrano1-sys">
-        <img src="https://files.catbox.moe/p94r94.jpg" width="120" height="120" style="border-radius: 50%; border: 1px solid #ccc;" alt="Yanniel"/>
-        <br />
-        <sub><b>Yanniel</b></sub>
-      </a>
-      <br />
-      👑 <b>Lead Developer</b>
-    </td>
-  </tr>
+
+<tr>
+
+<td align="center">
+
+<a href="https://github.com/yannielmedrano1-sys">
+
+<img src="https://upload.hackstorex.com/uploads/c00efcb3670386e81a4f3808c680b954.jpg" width="120px;" style="border-radius: 50%;" alt="Yanniel"/><br />
+
+<sub><b>Yanniel</b></sub>
+
+</a><br />
+
+👑 <b>Lead Developer</b>
+
+</td>
+
+</tr>
+
 </table>
 
 -----
