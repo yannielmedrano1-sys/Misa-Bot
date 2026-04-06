@@ -1,5 +1,5 @@
 {
-  "name": "kazuma-bot",
+  "name": "misa-bot",
   "version": "1.0.0",
   "description": "Bot multi-device con arquitectura ESM y Baileys",
   "main": "index.js",
