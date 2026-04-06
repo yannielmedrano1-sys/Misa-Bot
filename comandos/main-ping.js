@@ -22,10 +22,10 @@ const pingCommand = {
             const fakeLatencia = (Math.random() * (19 - 1) + 1).toFixed(3);
 
             await conn.sendMessage(from, { 
-                text: `✅ *Kazuma Bot Online*\n\n🚀 *Latencia:* ${fakeLatencia} ms`,
+                text: `✅ *𝓜𝓲𝓼𝓪  𝘽𝙊𝙏 Online*\n\n🚀 *Latencia:* ${fakeLatencia} ms`,
                 contextInfo: {
                     externalAdReply: {
-                        title: 'KAZUMA - SPEED TEST',
+                        title: '𝓜𝓲𝓼𝓪  - SPEED TEST',
                         body: 'Latencia del Servidor',
                         thumbnailUrl: 'https://files.catbox.moe/9ssbf9.jpg', 
                         sourceUrl: 'https://panel.kurayamihost.ooguy.com',
