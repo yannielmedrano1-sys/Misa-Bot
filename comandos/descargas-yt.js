@@ -26,7 +26,7 @@ const playCommand = {
             // 1. Reacción inicial
             await conn.sendMessage(chat, { react: { text: '⏳', key: m.key } });
             
-            // 2. Animación ÉPICA con muchos edits
+            // 2. Animación ÉPICA (Forzada al 100%)
             const { key } = await conn.sendMessage(chat, { text: '📥 *Descargando:* `1%` ▒▒▒▒▒▒▒▒▒▒' });
 
             const getBar = (p) => {
@@ -34,20 +34,26 @@ const playCommand = {
                 return '█'.repeat(filled) + '▒'.repeat(10 - filled);
             };
 
-            // Bucle ultra rápido para generar el efecto de "muchos edits"
-            for (let i = 1; i <= 100; i += 3) { 
-                // Aseguramos que siempre pase por el 100
+            // Bucle que garantiza el 100%
+            for (let i = 1; i <= 100; i += 4) { 
                 let valor = i > 100 ? 100 : i;
-                await new Promise(resolve => setTimeout(resolve, 30)); // 30ms para que vuele
+                await new Promise(resolve => setTimeout(resolve, 40)); 
                 await conn.sendMessage(chat, { 
                     text: `📥 *Descargando:* \`${valor}%\` ${getBar(valor)}`, 
                     edit: key 
                 });
-                if (valor === 100) break;
-                if (i + 3 > 100) i = 97; // Forzamos el último paso al 100
+                
+                // Si llegamos cerca del final, forzamos el 100 antes de salir
+                if (i + 4 > 100 && valor !== 100) {
+                    await new Promise(resolve => setTimeout(resolve, 40));
+                    await conn.sendMessage(chat, { 
+                        text: `📥 *Descargando:* \`100%\` ${getBar(100)}`, 
+                        edit: key 
+                    });
+                }
             }
 
-            // --- LÓGICA DE APIS (Solo después del 100%) ---
+            // --- LÓGICA DE APIS (Solo después de que el edit diga 100%) ---
             let v, audioUrl;
             try {
                 const res1 = await axios.get(`https://api.brayanofc.shop/dl/youtubeplay?query=${encodeURIComponent(text)}&key=api-gmnch`);
@@ -78,7 +84,7 @@ const playCommand = {
 
 > Powered by 𝓜𝓲𝓼𝓪 ♡`.trim();
 
-            // 3. Reacción de verificado al terminar
+            // 3. Verificado
             await conn.sendMessage(chat, { react: { text: '✅', key: m.key } });
 
             // 4. Enviar Info y Audio
@@ -103,7 +109,7 @@ const playCommand = {
                 fileName: `${v.title}.mp3` 
             }, { quoted: m });
 
-            // 5. Finalizar la edición del mensaje de descarga
+            // 5. Editar a éxito
             await conn.sendMessage(chat, { text: '🖤 *Audio enviado con éxito :)*', edit: key });
 
         } catch (err) {
