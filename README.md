@@ -117,27 +117,16 @@ El cerebro detrás de toda la arquitectura de Misa y la red de sockets.
 El cerebro detrás de toda la arquitectura de Misa y la red de sockets.
 
 
-
 <table align="center">
-
 <tr>
-
 <td align="center">
-
 <a href="https://github.com/yannielmedrano1-sys">
-
-<img src="https://upload.hackstorex.com/uploads/c00efcb3670386e81a4f3808c680b954.jpg" width="120px;" style="border-radius: 50%;" alt="Yanniel"/><br />
-
+<img src="https://i.pinimg.com/1200x/b7/f6/71/b7f671ca70b4a63856bb9dec2ffb1e94.jpg" width="120px;" style="border-radius: 50%;" alt="Yanniel"/><br />
 <sub><b>Yanniel</b></sub>
-
 </a><br />
-
 👑 <b>Lead Developer</b>
-
 </td>
-
 </tr>
-
 </table>
 
 -----
