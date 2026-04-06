@@ -40,7 +40,6 @@ const statusCommand = {
             const textoStatus = `
 ✿︎ Nombre del bot ᗒ *${config.botName}*
 ❁ Tiempo activo ᗒ *${uptimeDisplay}*
-❀ Comandos usados ᗒ *${global.totalCommandsUsed || 0}*
 
 ᗣ RAM ᗒ *${usedRam}MB / ${totalRam}MB*
 ⁂ CPU ᗒ *${cpuCores} vCores* (${cpuModel.split(' ')[0]})
