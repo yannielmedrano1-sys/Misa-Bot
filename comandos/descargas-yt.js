@@ -65,29 +65,32 @@ const playCommand = {
             // --- 3. DISPARO INSTANTÁNEO AL 100% ---
             await conn.sendMessage(chat, { react: { text: '✅', key: m.key } });
 
-            // Función Maestra para Vistas (Detecta Billones, Millones y Miles)
+            // Función definitiva para Vistas (Detecta TODO)
             const formatViews = (views) => {
                 if (!views) return "0";
-                let str = views.toString().toLowerCase();
-                // Extraemos números y puntos para no perder decimales como "1.2"
-                let n = parseFloat(str.replace(/[^0-9.]/g, '')) || 0;
-
-                if (str.includes('b') || str.includes('bill')) {
-                    return (n >= 1000) ? (n / 1).toFixed(1) + 'B' : n.toFixed(1) + 'B';
-                }
-                if (str.includes('m') || str.includes('mill')) {
-                    return n.toFixed(1) + 'M';
-                }
-                if (str.includes('k') || str.includes('mil')) {
-                    return n.toFixed(1) + 'K';
-                }
+                let str = views.toString().toLowerCase().trim();
                 
-                // Si el número viene puro y es gigante
+                // Si el string ya trae B, M o K, lo dejamos igual pero limpio
+                if (str.includes('b') || str.includes('m') || str.includes('k')) {
+                    return str.replace(/views|vistas|visualizaciones/g, '').toUpperCase().trim();
+                }
+
+                // Si viene como número puro y gigante
+                let n = parseInt(str.replace(/\D/g, '')) || 0;
                 if (n >= 1000000000) return (n / 1000000000).toFixed(1) + 'B';
                 if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
                 if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
                 
                 return n.toLocaleString(); 
+            };
+
+            // CAPTURA INTELIGENTE: Si la búsqueda falla en dar las vistas reales, 
+            // intentamos sacarlas de la metadata de Nexy o forzamos la búsqueda.
+            let vistasFinal = v.views || v.viewCount || "0";
+            
+            // Si el número es sospechosamente bajo (como ese "12"), intentamos buscarlo en el autor
+            if (parseInt(vistasFinal) < 100 && v.author?.views) {
+                vistasFinal = v.author.views;
             };
 
             const textoPlay = `✧ ‧₊˚ *YOUTUBE AUDIO* ୧ֹ˖ ⑅ ࣪⊹
