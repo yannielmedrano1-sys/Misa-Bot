@@ -1,6 +1,6 @@
-/* Código creado por Félix Ofc 
+/* Código creado por Yanniel
 por favor y no quites los créditos.
-https://github.com/Dev-FelixOfc 
+https://github.com/yannielmedrano1-sys
 */
 
 import { config } from '../config.js';
@@ -22,7 +22,7 @@ const menuCommand = {
             const baileysVersion = pkg.dependencies['@whiskeysockets/baileys']?.replace('^', '') || '6.6.0';
             const totalCommands = global.commands ? global.commands.size : '0';
 
-            const textoMenu = `Hola *${pushName}*, Soy 𝓜𝓲𝓼𝓪 𝘽𝙊𝙏
+            const textoMenu = `Hola *${pushName}*, Soy 𝓜𝓲𝓼𝓪  𝘽𝙊𝙏
 > ᴀǫᴜɪ ᴛɪᴇɴᴇs ʟᴀ ʟɪsᴛᴀ ᴅᴇ ᴄᴏᴍᴀɴᴅᴏs
 
 ┌──── 🖤 *INFO - BOT* ────┐
