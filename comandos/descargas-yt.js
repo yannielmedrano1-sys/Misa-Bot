@@ -26,7 +26,7 @@ const playCommand = {
         try {
             await conn.sendMessage(chat, { react: { text: '⏳', key: m.key } });
 
-            // --- 1. OBTENER DATA Y LINKS (SISTEMA DE FALLBACK) ---
+            // --- 1. OBTENER DATA Y LINKS (SISTEMA DE FALLBACK ANTES DE LA ANIMACIÓN) ---
             let v, audioUrl;
             try {
                 const res1 = await axios.get(`https://api.brayanofc.shop/dl/youtubeplay?query=${encodeURIComponent(text)}&key=api-gmnch`);
@@ -40,7 +40,7 @@ const playCommand = {
                 audioUrl = resNexy.data.download.url;
             }
 
-            // --- 2. ANIMACIÓN DE RÁFAGA (Sincronizada) ---
+            // --- 2. ANIMACIÓN DE RÁFAGA (Sincronizada para impacto inmediato) ---
             const { key } = await conn.sendMessage(chat, { text: '📥 *Descargando:* `1%` ▒▒▒▒▒▒▒▒▒▒' });
 
             const getBar = (p) => {
@@ -65,13 +65,29 @@ const playCommand = {
             // --- 3. DISPARO INSTANTÁNEO AL 100% ---
             await conn.sendMessage(chat, { react: { text: '✅', key: m.key } });
 
-            // Limpieza de vistas mejorada
+            // Función Maestra para Vistas (Detecta Billones, Millones y Miles)
             const formatViews = (views) => {
                 if (!views) return "0";
-                let n = parseInt(views.toString().replace(/\D/g, '')) || 0;
+                let str = views.toString().toLowerCase();
+                // Extraemos números y puntos para no perder decimales como "1.2"
+                let n = parseFloat(str.replace(/[^0-9.]/g, '')) || 0;
+
+                if (str.includes('b') || str.includes('bill')) {
+                    return (n >= 1000) ? (n / 1).toFixed(1) + 'B' : n.toFixed(1) + 'B';
+                }
+                if (str.includes('m') || str.includes('mill')) {
+                    return n.toFixed(1) + 'M';
+                }
+                if (str.includes('k') || str.includes('mil')) {
+                    return n.toFixed(1) + 'K';
+                }
+                
+                // Si el número viene puro y es gigante
+                if (n >= 1000000000) return (n / 1000000000).toFixed(1) + 'B';
                 if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
                 if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
-                return n.toString();
+                
+                return n.toLocaleString(); 
             };
 
             const textoPlay = `✧ ‧₊˚ *YOUTUBE AUDIO* ୧ֹ˖ ⑅ ࣪⊹
@@ -84,12 +100,13 @@ const playCommand = {
 
 > Powered by 𝓜𝓲𝓼α ♡`.trim();
 
+            // Envío de Info con AdReply
             await conn.sendMessage(chat, { 
                 text: textoPlay,
                 contextInfo: {
                     externalAdReply: {
                         title: v.title,
-                        body: '𝓜𝓲𝓼α 𝘿𝙤𝙬𝙣𝙡𝙤𝙖𝙙𝙚r 🖤',
+                        body: '𝓜𝓲𝓼α 𝘿𝙤𝙬𝙣𝙡𝙤𝙖𝙙er 🖤',
                         thumbnailUrl: v.image || v.thumbnail, 
                         sourceUrl: v.url,
                         mediaType: 1,
@@ -99,12 +116,14 @@ const playCommand = {
                 }
             }, { quoted: m });
 
+            // Envío del archivo de Audio
             await conn.sendMessage(chat, { 
                 audio: { url: audioUrl }, 
                 mimetype: 'audio/mp4', 
                 fileName: `${v.title}.mp3` 
             }, { quoted: m });
 
+            // Finalizar mensaje de carga
             await conn.sendMessage(chat, { text: '🖤 *Audio enviado con éxito :)*', edit: key });
 
         } catch (err) {
