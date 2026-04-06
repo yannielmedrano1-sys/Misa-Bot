@@ -20,29 +20,30 @@ const pingCommand = {
         try {
             const start = Date.now();
 
-            // 1. Enviamos el primer mensaje de la animación
+            // 1. Enviamos el primer mensaje (Calculando .)
             const { key } = await conn.sendMessage(from, { text: '✧ ‧₊˚ *Calculando* .' });
 
-            // 2. Editamos para crear el efecto de puntos (animación)
-            await new Promise(resolve => setTimeout(resolve, 500));
-            await conn.sendMessage(from, { text: '✧ ‧₊˚ *Calculando* . .', edit: key });
-
-            await new Promise(resolve => setTimeout(resolve, 500));
-            await conn.sendMessage(from, { text: '✧ ‧₊˚ *Calculando* . . .', edit: key });
-
+            // Medimos la latencia real AQUÍ MISMO para que sea precisa
             const end = Date.now();
             const latencia = end - start;
 
-            // 3. Resultado final épico con el estilo de Misa
-            const finalMsg = `› 🖤 𝕻𝖔𝖓𝖌 ⊹ \`${latencia} ms\``;
+            // 2. Animación Ultra Rápida (50ms entre puntos)
+            await new Promise(resolve => setTimeout(resolve, 50);
+            await conn.sendMessage(from, { text: '✧ ‧₊˚ *Calculando* . .', edit: key });
+
+            await new Promise(resolve => setTimeout(resolve, 50));
+            await conn.sendMessage(from, { text: '✧ ‧₊˚ *Calculando* . . .', edit: key });
+
+            // 3. Resultado final con el MS real optimizado
+            const finalMsg = ` 🖤  𝕻𝖔𝖓𝖌 ⊹ \`${latencia} ms\``;
 
             await conn.sendMessage(from, { 
                 text: finalMsg, 
                 edit: key,
                 contextInfo: {
                     externalAdReply: {
-                        title: '𝓜𝓲𝓼α  𝙎𝙥𝙚𝙚𝙙🖤',
-                        body: 'Latencia del Servidor',
+                        title: '𝓜𝓲𝓼α  𝙎𝙥𝙚𝙚𝙙 🖤',
+                        body: `Latencia: ${latencia}ms | Status: Online`,
                         thumbnailUrl: 'https://i.pinimg.com/1200x/16/45/2a/16452ab8f2cca58dfb57e4218b3f51a1.jpg', 
                         sourceUrl: 'https://github.com/yannielmedrano1-sys/Misa-Bot',
                         mediaType: 1,
