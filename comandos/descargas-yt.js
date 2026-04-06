@@ -97,7 +97,7 @@ const playCommand = {
                 contextInfo: {
                     externalAdReply: {
                         title: v.title,
-                        body: '𝓜𝓲𝓼𝓪 𝘿𝙤𝙬𝙣𝙡𝙤𝙖𝙙𝙚𝙧 🖤',
+                        body: '𝓜𝓲𝓼𝓪  𝘿𝙤𝙬𝙣𝙡𝙤𝙖𝙙𝙚𝙧 🖤',
                         thumbnailUrl: v.image || v.thumbnail, 
                         sourceUrl: v.url,
                         mediaType: 1,
