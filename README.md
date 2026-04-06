@@ -93,7 +93,7 @@ npm start
 
 -----
 
-🤝 COLABORADORES
+## 🤝COLABORADORES
 Este proyecto cuenta con el apoyo de inteligencia artificial avanzada para optimizar su lógica y estructura.
 
 <table align="center">
