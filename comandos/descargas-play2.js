@@ -70,11 +70,13 @@ const play2Command = {
                 });
             }
 
-            // --- 3. FORMATEO DE VISTAS (EL FIX DE 1B) ---
+           // 3. FORMATEO DE VISTAS (FIXED)
             const formatViews = (views) => {
                 if (!views) return "0";
                 let str = views.toString().toLowerCase();
+                // Si ya trae B, M o K, lo dejamos limpio
                 if (/[kmb]/.test(str)) return str.replace(/[^0-9.kmb]/g, '').toUpperCase();
+                
                 let n = parseInt(str.replace(/\D/g, '')) || 0;
                 if (n >= 1000000000) return (n / 1000000000).toFixed(1) + 'B';
                 if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
