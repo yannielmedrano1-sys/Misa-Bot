@@ -23,9 +23,10 @@ const playCommand = {
         }
 
         try {
+            // 1. Reacción inicial
             await conn.sendMessage(chat, { react: { text: '⏳', key: m.key } });
             
-            // Animación fluida de 1 a 100
+            // 2. Animación ÉPICA con muchos edits
             const { key } = await conn.sendMessage(chat, { text: '📥 *Descargando:* `1%` ▒▒▒▒▒▒▒▒▒▒' });
 
             const getBar = (p) => {
@@ -33,18 +34,20 @@ const playCommand = {
                 return '█'.repeat(filled) + '▒'.repeat(10 - filled);
             };
 
-            for (let i = 1; i <= 100; i++) {
-                // Saltos de 10 en 10 para que sea rápido pero se vea el 100%
-                if (i % 10 === 0 || i === 1 || i === 100) {
-                    await new Promise(resolve => setTimeout(resolve, 40)); 
-                    await conn.sendMessage(chat, { 
-                        text: `📥 *Descargando:* \`${i}%\` ${getBar(i)}`, 
-                        edit: key 
-                    });
-                }
+            // Bucle ultra rápido para generar el efecto de "muchos edits"
+            for (let i = 1; i <= 100; i += 3) { 
+                // Aseguramos que siempre pase por el 100
+                let valor = i > 100 ? 100 : i;
+                await new Promise(resolve => setTimeout(resolve, 30)); // 30ms para que vuele
+                await conn.sendMessage(chat, { 
+                    text: `📥 *Descargando:* \`${valor}%\` ${getBar(valor)}`, 
+                    edit: key 
+                });
+                if (valor === 100) break;
+                if (i + 3 > 100) i = 97; // Forzamos el último paso al 100
             }
 
-            // --- LÓGICA DE APIS ---
+            // --- LÓGICA DE APIS (Solo después del 100%) ---
             let v, audioUrl;
             try {
                 const res1 = await axios.get(`https://api.brayanofc.shop/dl/youtubeplay?query=${encodeURIComponent(text)}&key=api-gmnch`);
@@ -75,14 +78,16 @@ const playCommand = {
 
 > Powered by 𝓜𝓲𝓼𝓪 ♡`.trim();
 
+            // 3. Reacción de verificado al terminar
             await conn.sendMessage(chat, { react: { text: '✅', key: m.key } });
 
+            // 4. Enviar Info y Audio
             await conn.sendMessage(chat, { 
                 text: textoPlay,
                 contextInfo: {
                     externalAdReply: {
                         title: v.title,
-                        body: '𝓜𝓲𝓼𝓪 𝘿𝙤𝙬𝙣效𝙤𝙖𝙙𝙚𝙧 🖤',
+                        body: '𝓜𝓲𝓼𝓪 𝘿𝙤𝙬𝙣𝙡𝙤𝙖𝙙𝙚𝙧 🖤',
                         thumbnailUrl: v.image || v.thumbnail, 
                         sourceUrl: v.url,
                         mediaType: 1,
@@ -98,6 +103,7 @@ const playCommand = {
                 fileName: `${v.title}.mp3` 
             }, { quoted: m });
 
+            // 5. Finalizar la edición del mensaje de descarga
             await conn.sendMessage(chat, { text: '🖤 *Audio enviado con éxito :)*', edit: key });
 
         } catch (err) {
