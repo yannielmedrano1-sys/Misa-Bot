@@ -26,60 +26,34 @@ const play2Command = {
         try {
             await conn.sendMessage(chat, { react: { text: '⏳', key: m.key } });
 
-            // --- 1. OBTENER DATA Y LINKS (SISTEMA DE FALLBACKS COMPLETO) ---
-            let v, videoUrl, vistasReales;
+            // --- 1. DATA Y LINKS (3 APIS REALES - OPTIMIZADO) ---
             const search = await axios.get(`https://api.brayanofc.shop/dl/youtubeplay?query=${encodeURIComponent(text)}&key=api-gmnch`);
-            const ytUrl = search.data.data.url;
-            const vidId = search.data.data.videoId;
+            const v = search.data.data;
+            const ytUrl = v.url;
+            const vidId = v.videoId;
 
-            v = {
-                title: search.data.data.title,
-                thumbnail: search.data.data.image,
-                duration: search.data.data.duration,
-                url: ytUrl,
-                quality: '1080p'
-            };
+            let videoUrl, vistasReales = v.views, calidad = '720p';
 
-            // --- ESCALADA DE CALIDAD Y APIS ---
+            // Ejecución directa de las 3 APIs fijas
             try {
-                // NIVEL 1: Brayan v2 (1080p)
-                const res1 = await axios.get(`https://api.brayanofc.shop/dl/ytmp4v2?url=${encodeURIComponent(ytUrl)}&quality=1080&key=api-gmnch`);
-                if (!res1.data.status) throw new Error();
+                // API 1: Brayan v2 (1080p/720p)
+                const res1 = await axios.get(`https://api.brayanofc.shop/dl/ytmp4v2?url=${encodeURIComponent(ytUrl)}&quality=720&key=api-gmnch`);
                 videoUrl = res1.data.data.dl;
-                vistasReales = search.data.data.views;
             } catch {
                 try {
-                    // NIVEL 2: NexyLight (720p - Alta estabilidad)
+                    // API 2: NexyLight (La más estable por ID)
                     const res2 = await axios.get(`https://api.nexylight.xyz/dl/ytmp4?id=${vidId}&quality=720&key=nexy-9ccbbb`);
-                    if (!res2.data.status) throw new Error();
                     videoUrl = res2.data.download.url;
                     vistasReales = res2.data.data.views;
-                    v.quality = '720p';
                 } catch {
-                    try {
-                        // NIVEL 3: Brayan v1 (MP4 directo)
-                        const res3 = await axios.get(`https://api.brayanofc.shop/dl/ytmp4?url=${encodeURIComponent(ytUrl)}&key=api-gmnch`);
-                        videoUrl = res3.data.result.downloadUrl;
-                        vistasReales = search.data.data.views;
-                        v.quality = res3.data.result.quality || '480p';
-                    } catch {
-                        try {
-                            // NIVEL 4: API Alternativa (Delirius o Similares)
-                            const res4 = await axios.get(`https://deliriussapi-oficial.vercel.app/download/ytmp4?url=${encodeURIComponent(ytUrl)}`);
-                            videoUrl = res4.data.data.download.url;
-                            vistasReales = res4.data.data.views;
-                            v.quality = '720p';
-                        } catch {
-                            // NIVEL 5: Fallback de emergencia (ID-Based)
-                            const res5 = await axios.get(`https://api.zenkey.my.id/api/download/ytmp4?url=${encodeURIComponent(ytUrl)}&apikey=zenkey`);
-                            videoUrl = res5.data.result.downloadUrl;
-                            vistasReales = search.data.data.views;
-                        }
-                    }
+                    // API 3: Brayan v1 (Fallback final)
+                    const res3 = await axios.get(`https://api.brayanofc.shop/dl/ytmp4?url=${encodeURIComponent(ytUrl)}&key=api-gmnch`);
+                    videoUrl = res3.data.result.downloadUrl;
+                    calidad = '360p/480p';
                 }
             }
 
-            // --- 2. ANIMACIÓN ORIGINAL (35ms / 5%) ---
+            // --- 2. ANIMACIÓN REFINADA (Más rápida: 25ms) ---
             const { key } = await conn.sendMessage(chat, { text: '📥 *Descargando Video:* `1%` ▒▒▒▒▒▒▒▒▒▒' });
 
             const getBar = (p) => {
@@ -89,16 +63,11 @@ const play2Command = {
 
             for (let i = 1; i <= 100; i += 5) { 
                 let valor = i > 100 ? 100 : i;
-                await new Promise(resolve => setTimeout(resolve, 35)); 
+                await new Promise(resolve => setTimeout(resolve, 25)); // Bajamos de 35ms a 25ms
                 await conn.sendMessage(chat, { 
                     text: `📥 *Descargando Video:* \`${valor}%\` ${getBar(valor)}`, 
                     edit: key 
                 });
-                
-                if (i + 5 > 100 && valor !== 100) {
-                    await new Promise(resolve => setTimeout(resolve, 35));
-                    await conn.sendMessage(chat, { text: `📥 *Descargando Video:* \`100%\` ${getBar(100)}`, edit: key });
-                }
             }
 
             // --- 3. FORMATEO DE VISTAS (EL FIX DE 1B) ---
@@ -106,7 +75,6 @@ const play2Command = {
                 if (!views) return "0";
                 let str = views.toString().toLowerCase();
                 if (/[kmb]/.test(str)) return str.replace(/[^0-9.kmb]/g, '').toUpperCase();
-                
                 let n = parseInt(str.replace(/\D/g, '')) || 0;
                 if (n >= 1000000000) return (n / 1000000000).toFixed(1) + 'B';
                 if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
@@ -119,41 +87,41 @@ const play2Command = {
             const textoPlay2 = `✧ ‧₊˚ *YOUTUBE VIDEO* ୧ֹ˖ ⑅ ࣪⊹
 ⊹₊ ˚‧︵‿₊୨୧₊‿︵‧ ˚ ₊⊹
 ✰ Título: ${v.title}
-   › ✦ \`Calidad\`: *${v.quality}*
+   › ✦ \`Calidad\`: *${calidad}*
    › ⏱ \`Duración\`: *${v.duration}*
    › ꕤ \`Vistas\`: *${formatViews(vistasReales)}*
    › ❖ \`Link\`: *${v.url}*
 
 > Powered by 𝓜𝓲𝓼𝓪 ♡`.trim();
 
-            // ARTILLERÍA FINAL
-            await conn.sendMessage(chat, { 
-                text: textoPlay2,
-                contextInfo: {
-                    externalAdReply: {
-                        title: v.title,
-                        body: '𝓜𝓲𝓼𝓪  𝘿𝙤𝙬𝙣𝙡𝙤𝙖𝙙𝙚𝙧 🖤',
-                        thumbnailUrl: v.thumbnail, 
-                        sourceUrl: v.url,
-                        mediaType: 1,
-                        renderLargerThumbnail: true, 
-                        showAdAttribution: false 
+            // Envío en paralelo para ganar velocidad
+            await Promise.all([
+                conn.sendMessage(chat, { 
+                    text: textoPlay2,
+                    contextInfo: {
+                        externalAdReply: {
+                            title: v.title,
+                            body: '𝓜𝓲𝓼𝓪 𝘿𝙤𝙬𝙣𝙡𝙤𝙖𝙙er 🖤',
+                            thumbnailUrl: v.image, 
+                            sourceUrl: v.url,
+                            mediaType: 1,
+                            renderLargerThumbnail: true, 
+                            showAdAttribution: false 
+                        }
                     }
-                }
-            }, { quoted: m });
-
-            await conn.sendMessage(chat, { 
-                video: { url: videoUrl }, 
-                caption: `🖤 *${v.title}*`,
-                mimetype: 'video/mp4',
-                fileName: `${v.title}.mp4`
-            }, { quoted: m });
+                }, { quoted: m }),
+                conn.sendMessage(chat, { 
+                    video: { url: videoUrl }, 
+                    caption: `🖤 *${v.title}*`,
+                    mimetype: 'video/mp4'
+                }, { quoted: m })
+            ]);
 
             await conn.sendMessage(chat, { text: '🖤 *Video enviado con éxito :)*', edit: key });
 
         } catch (err) {
             console.error(err);
-            await conn.sendMessage(chat, { text: '> ✐ no se pudo obtener ese video, todas las APIs están caídas.' }, { quoted: m });
+            await conn.sendMessage(chat, { text: '> ✐ error crítico, intenta de nuevo.' }, { quoted: m });
         }
     }
 };
