@@ -31,7 +31,7 @@ const menuCommand = {
             const hora = now.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit", timeZone: "America/Santo_Domingo" });
             const fecha = now.toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "America/Santo_Domingo" });
 
-            const textoMenu = `Hola *${nombreUsuario}*, Soy 𝓜𝓲𝓼𝓪 𝘽𝙊𝙏
+            const textoMenu = `Hola *${nombreUsuario}*, Soy 𝓜𝓲𝓼𝓪  𝘽𝙊𝙏
 > ᴀǫᴜɪ ᴛɪᴇɴᴇs ʟᴀ ʟɪsᴛᴀ ᴅᴇ ᴄᴏᴍᴀɴᴅᴏs
 
 🖤 Prefix ⊹ \`${prefix}\`
@@ -44,27 +44,27 @@ const menuCommand = {
 *˚.⋆ֹ　 ꒰ 𝙸 𝙽 𝙵 𝙾 – 𝙱 𝙾 𝚃 ꒱ㆍ₊⊹*
 > ✐ Consulta el estado y la velocidad del sistema.
 
-*✿︎ ${prefix}p • ${prefix}ping*
+✿︎ ${prefix}p • ${prefix}ping
 > ❀ Calcula la latencia real del bot.
-*✿︎ ${prefix}help • ${prefix}menu*
+✿︎ ${prefix}help • ${prefix}menu
 > ❀ Despliega esta lista de comandos.
-*✿︎ ${prefix}botinfo • ${prefix}info*
+✿︎ ${prefix}botinfo • ${prefix}info
 > ❀ Información detallada del sistema.
 
 
 *˚.⋆ֹ　 ꒰ 𝚂 𝙾 𝙲 𝙺 𝙴 𝚃 𝚂 ꒱ㆍ₊⊹*
 > ✐ Gestión de sub-bots y conexiones.
 
-*✿︎ ${prefix}code*
+✿︎ ${prefix}code
 > ❀ Hazte Sub-Bot de 𝓜𝓲𝓼𝓪.
-*✿︎ ${prefix}bots • ${prefix}sockets*
+✿︎ ${prefix}bots • ${prefix}sockets
 > ❀ Mira la lista de sockets activos.
 
 
 *˚.⋆ֹ　 ꒰ 𝙾 𝚆 𝙽 𝙴 𝚁 ꒱ㆍ₊⊹*
 > ✐ Herramientas exclusivas del owner/creador.
 
-*✿︎ ${prefix}up • ${prefix}update*
+✿︎ ${prefix}up • ${prefix}update
 > ❀ Sincroniza el bot con el repositorio GitHub.
 
 ‧₊˚ *Powered by* \`𝓜𝓲𝓼𝓪\` ♡ ‧₊˚ `;
