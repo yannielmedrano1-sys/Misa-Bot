@@ -22,13 +22,15 @@ const pingCommand = {
             const fakeLatencia = (Math.random() * (19 - 1) + 1).toFixed(3);
 
             await conn.sendMessage(from, { 
-                text: `✅ *𝓜𝓲𝓼𝓪  𝘽𝙊𝙏 Online*\n\n🚀 *Latencia:* ${fakeLatencia} ms`,
+                text: `✅ *𝓜𝓲𝓼𝓪  𝘽𝙊𝙏 Online*\n\n 
+                ✰ *Latencia*: \`${fakeLatencia} ms\``,
+                
                 contextInfo: {
                     externalAdReply: {
                         title: '𝓜𝓲𝓼𝓪  - SPEED TEST',
                         body: 'Latencia del Servidor',
                         thumbnailUrl: 'https://i.pinimg.com/1200x/16/45/2a/16452ab8f2cca58dfb57e4218b3f51a1.jpg', 
-                        sourceUrl: 'https://panel.kurayamihost.ooguy.com',
+                        sourceUrl: 'https://github.com/yannielmedrano1-sys',
                         mediaType: 1,
                         // Renderizado pequeño (miniatura lateral)
                         renderLargerThumbnail: false,
