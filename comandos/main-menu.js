@@ -16,53 +16,60 @@ const menuCommand = {
     isAdmin: false,
     isGroup: false,
 
-    run: async (conn, m, { prefix }) => {
+    run: async (conn, m, { prefix, pushName }) => {
         try {
             const pkg = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'package.json'), 'utf8'));
             const baileysVersion = pkg.dependencies['@whiskeysockets/baileys']?.replace('^', '') || '6.6.0';
-            const totalCommands = global.commands.size;
+            const totalCommands = global.commands ? global.commands.size : '0';
 
-            const textoMenu = `¡Hola! Soy *${config.botName}*, un placer atenderte.
+            const textoMenu = `Hola *${pushName}*, Soy 𝓜𝓲𝓼𝓪 𝘽𝙊𝙏
+> ᴀǫᴜɪ ᴛɪᴇɴᴇs ʟᴀ ʟɪsᴛᴀ ᴅᴇ ᴄᴏᴍᴀɴᴅᴏs
 
-┌──── *INFO - BOT* ────┐
-│ Owner: Félix
-│ Comandos: ${totalCommands}
-│ Baileys: ${baileysVersion}
+┌──── 🖤 *INFO - BOT* ────┐
+│ 🖤 Owner: Yanniel
+│ 🖤 Comandos: ${totalCommands}
+│ 🖤 Baileys: ${baileysVersion}
 └──────────────┘
 
-*» (❍ᴥ❍ʋ) \`MAIN\` «*
-> ꕥ Comandos principales del bot.
+*˚.⋆ֹ　 ꒰ 𝙸 𝙽 𝙵 𝙾 – 𝙱 𝙾 𝚃 ꒱ㆍ₊⊹*
+> ✐ Consulta el estado y la velocidad del sistema.
 
-*✿︎ ${prefix}help • ${prefix}menu • ${prefix}ayuda*
-> ❀ Solicita la lista y descripción de comandos del bot.
 *✿︎ ${prefix}p • ${prefix}ping*
-> ❀ Calcula la latencia del bot.
-*✿︎ ${prefix}botinfo • ${prefix}infobot*
-> ❀ Mira información detallada del sistema operativo del bot.
+> ❀ Calcula la latencia real del bot.
+*✿︎ ${prefix}help • ${prefix}menu*
+> ❀ Despliega esta lista de comandos.
+*✿︎ ${prefix}botinfo • ${prefix}info*
+> ❀ Información detallada del sistema.
 
 
-*» (❍ᴥ❍ʋ) \`SOCKETS\` «*
-*✿︎ ${prefix}code
-> ❀ Hazte SubBot de Kazuma.
+*˚.⋆ֹ　 ꒰ 𝚂 𝙾 𝙲 𝙺 𝙴 𝚃 𝚂 ꒱ㆍ₊⊹*
+> ✐ Gestión de sub-bots y conexiones.
+
+*✿︎ ${prefix}code*
+> ❀ Hazte Sub-Bot de 𝓜𝓲𝓼𝓪.
 *✿︎ ${prefix}bots • ${prefix}sockets*
 > ❀ Mira la lista de sockets activos.
 
 
-*» (❍ᴥ❍ʋ) \`OWNER\` «*
-*✿︎ ${prefix}up • ${prefix}update • ${prefix}getpull*
-> ❀ Actualiza el servidor a lo archivos actuales del repositorio git.`;
+*˚.⋆ֹ　 ꒰ 𝙾 𝚆 𝙽 𝙴 𝚁 ꒱ㆍ₊⊹*
+> ✐ Herramientas exclusivas de Yanniel.
+
+*✿︎ ${prefix}up • ${prefix}update*
+> ❀ Sincroniza el bot con el repositorio GitHub.
+
+✧ ‧₊˚ Powered by 𝓜𝓲𝓼α ♡ ‧₊˚ ✧`;
 
             await conn.sendMessage(m.key.remoteJid, { 
                 text: textoMenu,
                 contextInfo: {
                     externalAdReply: {
-                        title: 'Kazuma',
-                        body: 'Kazuma Bot | Developed by félix',
-                        thumbnailUrl: 'https://files.catbox.moe/9ssbf9.jpg', 
-                        sourceUrl: 'https://panel.kurayamihost.ooguy.com', // Tu dominio de panel
+                        title: '𝓜𝓲𝓼𝓪🖤',
+                        body: 'Misa Bot | Developed by Yanniel',
+                        thumbnailUrl: 'https://i.pinimg.com/736x/30/6d/5d/306d5d75b0e4be7706e4fe784507154b.jpg', 
+                        sourceUrl: 'https://github.com/yannielmedrano1-sys/Misa-Bot',
                         mediaType: 1,
-                        renderLargerThumbnail: true, // Imagen grande estilo Canal
-                        showAdAttribution: false // Quitamos "Antes"
+                        renderLargerThumbnail: true, 
+                        showAdAttribution: false 
                     }
                 }
             }, { quoted: m });
