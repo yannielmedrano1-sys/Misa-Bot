@@ -46,7 +46,7 @@ const playCommand = {
             // --- 2. ANIMACIÓN RÁFAGA (Ultra rápida: 15ms) ---
             const { key } = await conn.sendMessage(chat, { text: '📥 *Descargando:* `1%` ▒▒▒▒▒▒▒▒▒▒' });
 
-            for (let i = 1; i <= 100; i += 20) { // Saltos de 20 en 20
+            for (let i = 1; i <= 100; i += 20) { 
                 let valor = i > 100 ? 100 : i;
                 await new Promise(resolve => setTimeout(resolve, 15)); 
                 await conn.sendMessage(chat, { 
@@ -78,16 +78,16 @@ const playCommand = {
    › ꕤ \`Vistas\`: *${formatViews(vistasReales)}*
    › ❖ \`Link\`: *${v.url}*
 
-> Powered by 𝓜𝓲𝓼α ♡`.trim();
+> Powered by 𝓜𝓲𝓼𝓪 ♡`.trim();
 
-            // Usamos Promise.all para que el texto y el audio salgan "PUM" al mismo tiempo
+            // Promise.all para que el texto y el audio salgan disparados a la vez
             await Promise.all([
                 conn.sendMessage(chat, { 
                     text: textoPlay,
                     contextInfo: {
                         externalAdReply: {
                             title: v.title,
-                            body: '𝓜𝓲𝓼α 𝘿𝙤𝙬𝙣𝙡𝙤α𝙙er 🖤',
+                            body: '𝓜𝓲𝓼𝓪  𝘿𝙤𝙬𝙣𝙡𝙤𝙖𝙙𝙚𝙧 🖤',
                             thumbnailUrl: v.image || v.thumbnail, 
                             sourceUrl: v.url,
                             mediaType: 1,
