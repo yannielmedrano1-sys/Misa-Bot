@@ -25,11 +25,11 @@ const menuCommand = {
             const textoMenu = `Hola *${pushName}*, Soy 𝓜𝓲𝓼𝓪  𝘽𝙊𝙏
 > ᴀǫᴜɪ ᴛɪᴇɴᴇs ʟᴀ ʟɪsᴛᴀ ᴅᴇ ᴄᴏᴍᴀɴᴅᴏs
 
-┌──── 🖤 *INFO - BOT* ────┐
-│  ꕤ*Owner*: \`Yanniel\`   │
-│  ✰*Comandos*: \`${totalCommands}\`
-│  ❀*Baileys*: \`${baileysVersion}\`
-└──────────────────────┘
+     🖤 *INFO - BOT*
+│  ꕤ *Owner*: \`Yanniel\`   
+│  ✰ *Comandos*: \`${totalCommands}\`
+│  ❀ *Baileys*: \`${baileysVersion}\`
+
 
 *˚.⋆ֹ　 ꒰ 𝙸 𝙽 𝙵 𝙾 – 𝙱 𝙾 𝚃 ꒱ㆍ₊⊹*
 > ✐ Consulta el estado y la velocidad del sistema.
@@ -57,7 +57,7 @@ const menuCommand = {
 *✿︎ ${prefix}up • ${prefix}update*
 > ❀ Sincroniza el bot con el repositorio GitHub.
 
->‧₊˚ Powered by 𝓜𝓲𝓼𝓪  ♡ ‧₊˚ `;
+‧₊˚ *Powered by* \`𝓜𝓲𝓼𝓪\` ♡ ‧₊˚ `;
 
             await conn.sendMessage(m.key.remoteJid, { 
                 text: textoMenu,
