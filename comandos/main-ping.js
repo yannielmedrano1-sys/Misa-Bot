@@ -27,7 +27,7 @@ const pingCommand = {
                     externalAdReply: {
                         title: '𝓜𝓲𝓼𝓪  - SPEED TEST',
                         body: 'Latencia del Servidor',
-                        thumbnailUrl: 'https://files.catbox.moe/9ssbf9.jpg', 
+                        thumbnailUrl: 'https://i.pinimg.com/1200x/16/45/2a/16452ab8f2cca58dfb57e4218b3f51a1.jpg', 
                         sourceUrl: 'https://panel.kurayamihost.ooguy.com',
                         mediaType: 1,
                         // Renderizado pequeño (miniatura lateral)
