@@ -1,6 +1,6 @@
-/* Código creado por Félix Ofc 
+/* Código creado por Yanniel
 por favor y no quites los créditos.
-https://github.com/Dev-FelixOfc 
+https://github.com/yannielmedrano1-sys
 */
 
 import { config } from '../config.js';
