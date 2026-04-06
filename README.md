@@ -5,7 +5,8 @@
 <p align="center">
   <img src="https://i.pinimg.com/736x/32/3d/f0/323df083174f97bff6a1a9c91623c0b4.jpg" alt="𝓜𝓲𝓼𝓪 Menu" width="400">
 </p>
-## 🚀 SOBRE EL PROYECTO
+
+## 🚀SOBRE EL PROYECTO
 
 **Misa Bot** es una infraestructura de mensajería automatizada de alto rendimiento. Desarrollado desde cero con **Node.js** y **Baileys**, este sistema permite la gestión de múltiples sub-bots (sockets) de manera simultánea, ofreciendo estabilidad y una interfaz estética en consola.
 
