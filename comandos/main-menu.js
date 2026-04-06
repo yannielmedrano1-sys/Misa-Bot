@@ -52,7 +52,7 @@ const menuCommand = {
 
 
 *˚.⋆ֹ　 ꒰ 𝙾 𝚆 𝙽 𝙴 𝚁 ꒱ㆍ₊⊹*
-> ✐ Herramientas exclusivas de Yanniel.
+> ✐ Herramientas exclusivas del owner/creador.
 
 *✿︎ ${prefix}up • ${prefix}update*
 > ❀ Sincroniza el bot con el repositorio GitHub.
