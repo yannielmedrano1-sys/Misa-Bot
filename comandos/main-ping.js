@@ -2,9 +2,7 @@
 por favor y no quites los créditos.
 https://github.com/yannielmedrano1-sys
 */
-
 import { config } from '../config.js';
-
 const pingCommand = {
     name: 'ping',
     alias: ['p', 'speed', 'latencia'],
@@ -13,50 +11,36 @@ const pingCommand = {
     noPrefix: true,
     isAdmin: false,
     isGroup: false,
-
+   
     run: async (conn, m) => {
         const from = m.key.remoteJid;
 
         try {
-            const start = Date.now();
+            // Generamos un número aleatorio bajo para la estética
+            const fakeLatencia = (Math.random() * (19 - 1) + 1).toFixed(3);
 
-            // 1. Enviamos el primer mensaje (Calculando .)
-            const { key } = await conn.sendMessage(from, { text: '✧ ‧₊˚ *Calculando* .' });
-
-            // Medimos la latencia real AQUÍ MISMO para que sea precisa
-            const end = Date.now();
-            const latencia = end - start;
-
-            // 2. Animación Ultra Rápida (50ms entre puntos)
-            await new Promise(resolve => setTimeout(resolve, 50);
-            await conn.sendMessage(from, { text: '✧ ‧₊˚ *Calculando* . .', edit: key });
-
-            await new Promise(resolve => setTimeout(resolve, 50));
-            await conn.sendMessage(from, { text: '✧ ‧₊˚ *Calculando* . . .', edit: key });
-
-            // 3. Resultado final con el MS real optimizado
-            const finalMsg = ` 🖤  𝕻𝖔𝖓𝖌 ⊹ \`${latencia} ms\``;
 
             await conn.sendMessage(from, { 
-                text: finalMsg, 
-                edit: key,
+                text: `✅ *𝓜𝓲𝓼α  Latencia🖤*\n\n🚀 *Latencia:* ${fakeLatencia} ms`,
                 contextInfo: {
                     externalAdReply: {
                         title: '𝓜𝓲𝓼α  𝙎𝙥𝙚𝙚𝙙 🖤',
-                        body: `Latencia: ${latencia}ms | Status: Online`,
-                        thumbnailUrl: 'https://i.pinimg.com/1200x/16/45/2a/16452ab8f2cca58dfb57e4218b3f51a1.jpg', 
-                        sourceUrl: 'https://github.com/yannielmedrano1-sys/Misa-Bot',
+                        body: 'Latencia del Servidor',
+                        thumbnailUrl: 'https://i.pinimg.com/736x/30/6d/5d/306d5d75b0e4be7706e4fe784507154b.jpg', 
+                        sourceUrl: 'https://github.com/yannielmedrano1-sys',
                         mediaType: 1,
+                        // Renderizado pequeño (miniatura lateral)
                         renderLargerThumbnail: false,
+                        // Quitamos la etiqueta de "Anuncio"
                         showAdAttribution: false
                     }
                 }
-            });
-
+            }, { quoted: m });
         } catch (err) {
             console.error('Error en comando ping:', err);
         }
     }
+
 };
 
-export default pingCommand;
+
