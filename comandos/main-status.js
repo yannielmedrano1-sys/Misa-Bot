@@ -1,6 +1,6 @@
-/* Código creado por Félix Ofc 
+/* Código creado por Yanniel
 por favor y no quites los créditos.
-https://github.com/Dev-FelixOfc 
+https://github.com/yannielmedrano1-sys
 */
 
 import os from 'os';
@@ -46,16 +46,16 @@ const statusCommand = {
 ⁂ CPU ᗒ *${cpuCores} vCores* (${cpuModel.split(' ')[0]})
 𖧷 DISCO ᗒ *En uso / ${totalDisk}*
 
-> DEVELOPED BY FÉLIX OFC`.trim();
+> DEVELOPED BY YANNIEL`.trim();
 
             await conn.sendMessage(m.key.remoteJid, { 
                 text: textoStatus,
                 contextInfo: {
                     externalAdReply: {
-                        title: 'KAZUMA - SYSTEM STATUS',
+                        title: '𝓜𝓲𝓼𝓪  - SYSTEM STATUS',
                         body: `Server: ${os.platform()} - ${os.arch()}`,
-                        // Nueva foto de Catbox
-                        thumbnailUrl: 'https://files.catbox.moe/5fli7o.jpg', 
+                        // Nueva foto de pinterest
+                        thumbnailUrl: 'https://i.pinimg.com/736x/6d/47/2c/6d472ce76cf53e8d0baf193af4e69464.jpg', 
                         mediaType: 1,
                         // MINIATURA PEQUEÑA (Solo en este comando)
                         renderLargerThumbnail: false 
