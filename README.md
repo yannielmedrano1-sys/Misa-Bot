@@ -3,7 +3,7 @@
 > **"Un bot de WhatsApp revolucionario, creado desde cero con pasión y código puro."**
 
 <p align="center">
-  <img src="https://files.catbox.moe/p94r94.jpg" alt="Misa Menu" width="400">
+  <img src="https://i.pinimg.com/736x/32/3d/f0/323df083174f97bff6a1a9c91623c0b4.jpg" alt="𝓜𝓲𝓼𝓪 Menu" width="400">
 </p>
 ## 🚀 SOBRE EL PROYECTO
 
