@@ -57,7 +57,7 @@ const menuCommand = {
 *✿︎ ${prefix}up • ${prefix}update*
 > ❀ Sincroniza el bot con el repositorio GitHub.
 
->   ‧₊˚ Powered by 𝓜𝓲𝓼𝓪  ♡ ‧₊˚ `;
+>‧₊˚ Powered by 𝓜𝓲𝓼𝓪  ♡ ‧₊˚ `;
 
             await conn.sendMessage(m.key.remoteJid, { 
                 text: textoMenu,
