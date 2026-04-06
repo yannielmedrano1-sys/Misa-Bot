@@ -107,7 +107,9 @@ Este proyecto cuenta con el apoyo de inteligencia artificial avanzada para optim
 </td>
 </tr>
 </table>
+
 -----
+
 ## 👑 CREADOR
 
 El cerebro detrás de toda la arquitectura de Misa y la red de sockets.
