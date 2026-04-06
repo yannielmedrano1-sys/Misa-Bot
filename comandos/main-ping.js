@@ -18,25 +18,39 @@ const pingCommand = {
         const from = m.key.remoteJid;
 
         try {
-            // Generamos un número aleatorio bajo para la estética
-            const fakeLatencia = (Math.random() * (19 - 1) + 1).toFixed(3);
+            const start = Date.now();
+
+            // 1. Enviamos el primer mensaje de la animación
+            const { key } = await conn.sendMessage(from, { text: '✧ ‧₊˚ *Calculando* .' });
+
+            // 2. Editamos para crear el efecto de puntos (animación)
+            await new Promise(resolve => setTimeout(resolve, 500));
+            await conn.sendMessage(from, { text: '✧ ‧₊˚ *Calculando* . .', edit: key });
+
+            await new Promise(resolve => setTimeout(resolve, 500));
+            await conn.sendMessage(from, { text: '✧ ‧₊˚ *Calculando* . . .', edit: key });
+
+            const end = Date.now();
+            const latencia = end - start;
+
+            // 3. Resultado final épico con el estilo de Misa
+            const finalMsg = `› 🖤 𝕻𝖔𝖓𝖌 ⊹ \`${latencia} ms\``;
 
             await conn.sendMessage(from, { 
-                text: `✅ *Kazuma Bot Online*\n\n🚀 *Latencia:* ${fakeLatencia} ms`,
+                text: finalMsg, 
+                edit: key,
                 contextInfo: {
                     externalAdReply: {
-                        title: 'KAZUMA - SPEED TEST',
+                        title: '𝓜𝓲𝓼α 𝙎𝙥𝙚𝙚𝙙 🖤',
                         body: 'Latencia del Servidor',
-                        thumbnailUrl: 'https://files.catbox.moe/9ssbf9.jpg', 
-                        sourceUrl: 'https://panel.kurayamihost.ooguy.com',
+                        thumbnailUrl: 'https://files.catbox.moe/p94r94.jpg', 
+                        sourceUrl: 'https://github.com/yannielmedrano1-sys/Misa-Bot',
                         mediaType: 1,
-                        // Renderizado pequeño (miniatura lateral)
                         renderLargerThumbnail: false,
-                        // Quitamos la etiqueta de "Anuncio"
                         showAdAttribution: false
                     }
                 }
-            }, { quoted: m });
+            });
 
         } catch (err) {
             console.error('Error en comando ping:', err);
