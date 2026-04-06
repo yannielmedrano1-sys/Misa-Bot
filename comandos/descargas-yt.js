@@ -10,63 +10,52 @@ const playCommand = {
     alias: ['audio', 'music', 'ytmp3'],
     category: 'downloader',
     isOwner: false,
-    noPrefix: true, // <--- Habilitado para que funcione sin prefijo
+    noPrefix: true, 
     isAdmin: false,
     isGroup: false,
 
     run: async (conn, m, { text, usedPrefix, command }) => {
-        // Definimos el chat de forma segura para evitar el error de jidDecode
         const chat = m.key.remoteJid;
+        const prefijo = usedPrefix ? usedPrefix : '';
 
         if (!text) {
-            return conn.sendMessage(chat, { text: `🖤 *¿Qué quieres escuchar?*\n\nEjemplo: \`${usedPrefix + command} Media Hora\`` }, { quoted: m });
+            return conn.sendMessage(chat, { text: `🖤 *¿Qué quieres escuchar?*\n\nEjemplo: \`${prefijo + command} Media Hora\`` }, { quoted: m });
         }
 
         try {
-            // 1. Reacción y Animación
             await conn.sendMessage(chat, { react: { text: '⏳', key: m.key } });
             
-            const { key } = await conn.sendMessage(chat, { text: '📥 *Descargando:* `0%` ▒▒▒▒▒▒▒▒▒▒' });
+            // Animación fluida de 1 a 100
+            const { key } = await conn.sendMessage(chat, { text: '📥 *Descargando:* `1%` ▒▒▒▒▒▒▒▒▒▒' });
 
-            const porcentajes = [
-                { p: '40%', b: '████▒▒▒▒▒▒' },
-                { p: '80%', b: '████████▒▒' },
-                { p: '100%', b: '██████████' }
-            ];
+            const getBar = (p) => {
+                const filled = Math.floor(p / 10);
+                return '█'.repeat(filled) + '▒'.repeat(10 - filled);
+            };
 
-            for (const step of porcentajes) {
-                await new Promise(resolve => setTimeout(resolve, 80));
-                await conn.sendMessage(chat, { text: `📥 *Descargando:* \`${step.p}\` ${step.b}`, edit: key });
+            for (let i = 1; i <= 100; i++) {
+                // Saltos de 10 en 10 para que sea rápido pero se vea el 100%
+                if (i % 10 === 0 || i === 1 || i === 100) {
+                    await new Promise(resolve => setTimeout(resolve, 40)); 
+                    await conn.sendMessage(chat, { 
+                        text: `📥 *Descargando:* \`${i}%\` ${getBar(i)}`, 
+                        edit: key 
+                    });
+                }
             }
 
-            let v, audioUrl;
-
             // --- LÓGICA DE APIS ---
+            let v, audioUrl;
             try {
                 const res1 = await axios.get(`https://api.brayanofc.shop/dl/youtubeplay?query=${encodeURIComponent(text)}&key=api-gmnch`);
-                if (!res1.data.status) throw new Error();
                 v = res1.data.data;
                 audioUrl = v.dl;
             } catch {
-                try {
-                    const search = await axios.get(`https://api.brayanofc.shop/dl/youtubeplay?query=${encodeURIComponent(text)}&key=api-gmnch`);
-                    const id = search.data.data.videoId;
-                    const resNexy = await axios.get(`https://api.nexylight.xyz/dl/ytmp3?id=${id}&key=nexy-9ccbbb`);
-                    v = resNexy.data.data;
-                    audioUrl = resNexy.data.download.url;
-                } catch {
-                    const res2 = await axios.get(`https://api.brayanofc.shop/dl/youtubev2?url=${encodeURIComponent(text)}&key=api-gmnch`);
-                    const info = res2.data.results.info;
-                    v = {
-                        title: info.title,
-                        image: info.thumbnail,
-                        duration: info.duration,
-                        author: { name: info.channel.name.replace('Channel: ', '') },
-                        url: text.includes('http') ? text : 'https://youtu.be/' + info.id,
-                        views: info.channel.subscribers 
-                    };
-                    audioUrl = res2.data.results.formats.find(f => f.itag === "140")?.url;
-                }
+                const search = await axios.get(`https://api.brayanofc.shop/dl/youtubeplay?query=${encodeURIComponent(text)}&key=api-gmnch`);
+                const id = search.data.data.videoId;
+                const resNexy = await axios.get(`https://api.nexylight.xyz/dl/ytmp3?id=${id}&key=nexy-9ccbbb`);
+                v = resNexy.data.data;
+                audioUrl = resNexy.data.download.url;
             }
 
             const formatViews = (views) => {
@@ -84,7 +73,7 @@ const playCommand = {
    › ꕤ \`Vistas\`: *${formatViews(v.views)}*
    › ❖ \`Link\`: *${v.url}*
 
-> Powered by 𝓜𝓲𝓼α ♡`.trim();
+> Powered by 𝓜𝓲𝓼𝓪 ♡`.trim();
 
             await conn.sendMessage(chat, { react: { text: '✅', key: m.key } });
 
@@ -93,7 +82,7 @@ const playCommand = {
                 contextInfo: {
                     externalAdReply: {
                         title: v.title,
-                        body: '𝓜𝓲𝓼α 𝘿𝙤𝙬𝙣𝙡𝙤ᴀ𝙙𝙚𝙧 🖤',
+                        body: '𝓜𝓲𝓼𝓪 𝘿𝙤𝙬𝙣效𝙤𝙖𝙙𝙚𝙧 🖤',
                         thumbnailUrl: v.image || v.thumbnail, 
                         sourceUrl: v.url,
                         mediaType: 1,
@@ -113,7 +102,6 @@ const playCommand = {
 
         } catch (err) {
             console.error(err);
-            // Reemplazamos m.reply por conn.sendMessage para evitar el error de "not a function"
             await conn.sendMessage(chat, { text: '> ✐ no se pudo obtener ese audio, intenta de nuevo.' }, { quoted: m });
         }
     }
