@@ -2,12 +2,9 @@
 
 > **"Un bot de WhatsApp revolucionario, creado desde cero con pasión y código puro."**
 
-\<p align="center"\>
-  \<img src="[https://i.pinimg.com/1200x/e2/9b/10/e29b10c1483f398087db7df96dbe6e82.jpg](https://i.pinimg.com/1200x/e2/9b/10/e29b10c1483f398087db7df96dbe6e82.jpg)" alt="Misa Menu" width="400"\>
-\</p\>
-
-\--- 
-
+<p align="center">
+  <img src="https://files.catbox.moe/p94r94.jpg" alt="Misa Menu" width="400">
+</p>
 ## 🚀 SOBRE EL PROYECTO
 
 **Misa Bot** es una infraestructura de mensajería automatizada de alto rendimiento. Desarrollado desde cero con **Node.js** y **Baileys**, este sistema permite la gestión de múltiples sub-bots (sockets) de manera simultánea, ofreciendo estabilidad y una interfaz estética en consola.
@@ -96,39 +93,36 @@ npm start
 
 -----
 
-## 🤝 COLABORADORES
-
+🤝 COLABORADORES
 Este proyecto cuenta con el apoyo de inteligencia artificial avanzada para optimizar su lógica y estructura.
 
-\<table align="center"\>
-  \<tr\>
-    \<td align="center"\>
-      \<a href="[https://gemini.google.com](https://gemini.google.com)"\>
-        \<img src="[https://files.catbox.moe/zd9a5g.png](https://files.catbox.moe/zd9a5g.png)" width="100px;" alt="Gemini"/\>\<br /\>
-        \<sub\>\<b\>Gemini AI\</b\>\</sub\>
-      \</a\>\<br /\>
-      🤖 \<b\>AI Assistant\</b\>
-    \</td\>
-  \</tr\>
-\</table\>
-
+<table align="center">
+<tr>
+<td align="center">
+<a href="https://gemini.google.com">
+<img src="https://files.catbox.moe/zd9a5g.png" width="100px;" alt="Gemini"/><br />
+<sub><b>Gemini AI</b></sub>
+</a><br />
+🤖 <b>AI Assistant</b>
+</td>
+</tr>
+</table>
 -----
 
 ## 👑 CREADOR
-
 El cerebro detrás de toda la arquitectura de Misa y la red de sockets.
 
-\<table align="center"\>
-  \<tr\>
-    \<td align="center"\>
-      \<a href="[https://github.com/yannielmedrano1-sys](https://www.google.com/search?q=https://github.com/yannielmedrano1-sys)"\>
-        \<img src="[https://upload.hackstorex.com/uploads/c00efcb3670386e81a4f3808c680b954.jpg](https://upload.hackstorex.com/uploads/c00efcb3670386e81a4f3808c680b954.jpg)" width="120px;" style="border-radius: 50%;" alt="Yanniel"/\>\<br /\>
-        \<sub\>\<b\>Yanniel\</b\>\</sub\>
-      \</a\>\<br /\>
-      👑 \<b\>Lead Developer\</b\>
-    \</td\>
-  \</tr\>
-\</table\>
+<table align="center">
+<tr>
+<td align="center">
+<a href="https://github.com/yannielmedrano1-sys">
+<img src="https://upload.hackstorex.com/uploads/c00efcb3670386e81a4f3808c680b954.jpg" width="120px;" style="border-radius: 50%;" alt="Yanniel"/><br />
+<sub><b>Yanniel</b></sub>
+</a><br />
+👑 <b>Lead Developer</b>
+</td>
+</tr>
+</table>
 
 -----
 
@@ -138,6 +132,6 @@ El cerebro detrás de toda la arquitectura de Misa y la red de sockets.
 
 -----
 
-\<p align="center"\>
-  \<i\>Desarrollado en la República Dominicana\</i\>
-\</p\>
+<p align="center">
+<i>Desarrollado en la República Dominicana</i>
+</p>
