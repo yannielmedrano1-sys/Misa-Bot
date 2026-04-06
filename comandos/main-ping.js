@@ -41,9 +41,9 @@ const pingCommand = {
                 edit: key,
                 contextInfo: {
                     externalAdReply: {
-                        title: '𝓜𝓲𝓼α 𝙎𝙥𝙚𝙚𝙙 🖤',
+                        title: '𝓜𝓲𝓼α  𝙎𝙥𝙚𝙚𝙙🖤',
                         body: 'Latencia del Servidor',
-                        thumbnailUrl: 'https://files.catbox.moe/p94r94.jpg', 
+                        thumbnailUrl: 'https://i.pinimg.com/1200x/16/45/2a/16452ab8f2cca58dfb57e4218b3f51a1.jpg', 
                         sourceUrl: 'https://github.com/yannielmedrano1-sys/Misa-Bot',
                         mediaType: 1,
                         renderLargerThumbnail: false,
