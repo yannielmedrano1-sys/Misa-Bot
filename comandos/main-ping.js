@@ -23,7 +23,7 @@ const pingCommand = {
 
             await conn.sendMessage(from, { 
                 text: `❀ *𝓜𝓲𝓼𝓪  𝘽𝙊𝙏 Online* 
-✰ *Latencia*: \`${fakeLatencia} ms\``,
+✰ *𝙻𝚊𝚝𝚎𝚗𝚌𝚒𝚊*: \`${fakeLatencia} ms\``,
                 
                 contextInfo: {
                     externalAdReply: {
