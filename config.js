@@ -2,9 +2,10 @@ export const config = {
     botName: 'Misa Bot',
     // Tus dos identidades oficiales para reconocimiento total
     owner: [
-        '573508941325@s.whatsapp.net', 
-        '573229608749@s.whatsapp.net',
-        '125860308893859@lid',
+        '639466249960@s.whatsapp.net', 
+        '18492797341@s.whatsapp.net',
+        '18297677527@s.whatsapp.net',
+        '40334423752714@lid',
     ], 
     prefix: '#', // Prefijo visual predeterminado
     allPrefixes: ['#', '!', '.'], // Prefijos que el bot siempre reconocerá
@@ -28,7 +29,7 @@ export const config = {
 
     // NUEVOS MENSAJES PARA EL MENÚ
     bienvenidas: {
-        bienvenida1: '¡Hola! Soy Kazuma Bot, un placer atenderte.',
+        bienvenida1: '¡Hola! Soy 𝓜𝓲𝓼𝓪  𝘽𝙊𝙏, un placer atenderte.',
         bienvenida2: 'Aquí tienes la lista de comandos:'
     },
 
