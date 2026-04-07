@@ -1,9 +1,10 @@
-/* KURAYAMI TEAM - PIXEL HANDLER (DIAGNÓSTICO ACTIVO) 
-   Lógica: Identidad Dual + Alerta de Rango
+/* KURAYAMI TEAM - PIXEL HANDLER (VERSIÓN DOMINICANA 🇩🇴) 
+   Lógica: Identidad Dual + Blindaje de JID
 */
 
 import chalk from 'chalk';
 import { logger } from './config/print.js';
+import { jidDecode } from '@whiskeysockets/baileys';
 
 export const pixelHandler = async (conn, m, config) => {
     try {
@@ -11,18 +12,29 @@ export const pixelHandler = async (conn, m, config) => {
         const chat = m.key.remoteJid;
         if (chat === 'status@broadcast') return;
 
-        const sender = m.sender || m.key.participant || m.key.remoteJid;
+        // 🛠️ FUNCIÓN PARA LIMPIAR IDS (Evita el error de jidDecode)
+        const decodeJid = (jid) => {
+            if (!jid) return jid;
+            if (/:\d+@/gi.test(jid)) {
+                let decode = jidDecode(jid) || {};
+                return decode.user && decode.server && decode.user + '@' + decode.server || jid;
+            } else return jid;
+        };
+
+        // Extraemos y limpiamos el remitente
+        const sender = decodeJid(m.key.participant || m.key.remoteJid || m.sender || '');
         
-        // 🛡️ --- LAS LLAVES MAESTRAS DE FÉLIX ---
+        // 🛡️ --- TUS IDENTIDADES OFICIALES (SIN +57) ---
         const misIdentidades = [
-            '573508941325@s.whatsapp.net', // Tu JID (Privado)
-            '125860308893859@lid'          // Tu LID (Grupo)
+            '125860308893859@lid',           // Tu ID de Sub-Bot
+            '18492797341@s.whatsapp.net',    // Yanniel Principal
+            '18297677527@s.whatsapp.net'     // Yanniel Secundario
         ];
 
-        // Comprobación directa
         const isOwner = misIdentidades.includes(sender);
         const isGroup = chat.endsWith('@g.us');
 
+        // Extracción del cuerpo del mensaje (Body)
         const type = Object.keys(m.message)[0];
         const body = (type === 'conversation') ? m.message.conversation : 
                      (type === 'extendedTextMessage') ? m.message.extendedTextMessage.text : 
@@ -47,34 +59,40 @@ export const pixelHandler = async (conn, m, config) => {
         const args = body.trim().split(/ +/).slice(1);
         const text = args.join(' ');
 
+        // Buscar comando o alias en el global.commands
         const cmd = global.commands.get(commandName) || 
                     Array.from(global.commands.values()).find(c => c.alias && c.alias.includes(commandName));
 
         if (cmd) {
             if (!usedPrefix && !cmd.noPrefix) return;
 
-            // 🔱 --- EL "CHISMOSO" DE SEGURIDAD ---
+            // 🔱 --- VERIFICACIÓN DE OWNER ---
             if (cmd.isOwner && !isOwner) {
-                // Si el bot te responde esto, es que NO reconoció tu LID/JID actual
-                return m.reply(`🚫 *ACCESO DENEGADO*\n\nTu ID actual: \`${sender}\` no está en la lista de dueños de **Kurayami Host**.\n\n_Si eres el dueño, verifica que este ID coincida con el código._`);
+                return conn.sendMessage(chat, { 
+                    text: `🚫 *ACCESO DENEGADO*\n\nTu ID: \`${sender}\` no está autorizada en el Olimpo de **Misa**.` 
+                }, { quoted: m });
             }
 
-            if (cmd.isGroup && !isGroup) return m.reply('❌ Comando solo para grupos.');
+            if (cmd.isGroup && !isGroup) {
+                return conn.sendMessage(chat, { text: '❌ Comando solo para grupos.' }, { quoted: m });
+            }
 
+            // Ejecución
             logger(m, conn);
             await cmd.run(conn, m, { 
                 body, 
-                prefix: config.prefix, 
+                prefix: usedPrefix || '', 
                 command: commandName, 
                 args, 
                 text, 
                 isOwner, 
                 isGroup, 
+                from: chat,
                 config 
             });
         }
 
     } catch (err) {
-        console.error(chalk.red('[ERROR]'), err);
+        console.error(chalk.red('[ERROR EN PIXEL.JS]'), err);
     }
 };
