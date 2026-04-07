@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # ==========================================
-#   🛠️ SCRIPT DE MANTENIMIENTO KAZUMA-BOT
-#   👑 CREADOR: Félix OFC (Dev-FelixOfc)
+#   🛠️ SCRIPT DE MANTENIMIENTO MISA-BOT
+#   👑 CREADOR: Yanniel 
 #   📝 NOTA: Este script sirve para limpiar 
 #      la sesión actual del bot y forzar un 
 #      nuevo código de vinculación. Úsalo si 
@@ -17,7 +17,7 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 echo -e "${CYAN}------------------------------------------${NC}"
-echo -e "${GREEN}    INICIANDO LIMPIEZA DE KAZUMA-BOT      ${NC}"
+echo -e "${GREEN}    INICIANDO LIMPIEZA DE MISA-BOT      ${NC}"
 echo -e "${CYAN}------------------------------------------${NC}"
 
 # Paso 1: Borrar carpeta de sesión principal
