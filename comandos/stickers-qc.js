@@ -1,4 +1,8 @@
 import axios from 'axios'
+import { writeFileSync, unlinkSync } from 'fs'
+import { tmpdir } from 'os'
+import path from 'path'
+import { exec } from 'child_process'
 
 const qcCommand = {
     name: 'qc',
@@ -48,21 +52,37 @@ const qcCommand = {
 
             const buffer = Buffer.from(res.data.result.image, 'base64')
 
-            // 🔥 AQUÍ ESTÁ LA MAGIA
-            await conn.sendImageAsSticker(chat, buffer, m, {
-                packname: '✨ Misa Bot',
-                author: sender.split('@')[0]
+            // 🔥 guardar temporal
+            const input = path.join(tmpdir(), `qc-${Date.now()}.png`)
+            const output = path.join(tmpdir(), `qc-${Date.now()}.webp`)
+
+            writeFileSync(input, buffer)
+
+            // 🔥 CONVERSIÓN REAL A WEBP
+            await new Promise((resolve, reject) => {
+                exec(`ffmpeg -i ${input} -vf "scale=512:512:force_original_aspect_ratio=decrease" ${output}`, (err) => {
+                    if (err) reject(err)
+                    else resolve()
+                })
             })
+
+            // 🔥 enviar sticker real
+            await conn.sendMessage(chat, {
+                sticker: { url: output }
+            }, { quoted: m })
+
+            unlinkSync(input)
+            unlinkSync(output)
 
             await conn.sendMessage(chat, { react: { text: '✔️', key: m.key } })
 
         } catch (e) {
-            console.error("QC ERROR:", e.response?.data || e.message)
+            console.error("QC ERROR:", e)
 
             await conn.sendMessage(chat, { react: { text: '✖️', key: m.key } })
 
             await conn.sendMessage(chat, {
-                text: '❌ Error al crear el sticker'
+                text: '❌ Error al crear el sticker (revisa ffmpeg)'
             }, { quoted: m })
         }
     }
