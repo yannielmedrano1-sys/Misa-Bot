@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 
 /**
- * Monitor de consola estético para Kazuma-Bot
+ * Monitor de consola estético para MIsa-Bot
  * Versión corregida para evitar cierres inesperados en Termux/Pterodactyl.
  */
 export const logger = (m, conn) => {
