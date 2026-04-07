@@ -10,8 +10,12 @@ const linkCommand = {
     isGroup: true,
     botAdmin: true,
 
-    run: async (conn, m, { command }) => {
+    run: async (conn, m) => {
         const chat = m.key.remoteJid
+
+        // 🔥 FIX DEL ERROR
+        const sender = m.sender || m.key.participant || m.key.remoteJid
+        const user = sender.split('@')[0]
 
         try {
             const code = await conn.groupInviteCode(chat)
@@ -21,14 +25,14 @@ const linkCommand = {
 
 📌 Aquí tienes el link del grupo
 
-👤 Solicitado por: @${m.sender.split('@')[0]}
+👤 Solicitado por: @${user}
 
 🌐 Link:
 ${link}`
 
             await conn.sendMessage(chat, {
                 text: teks,
-                mentions: [m.sender]
+                mentions: [sender]
             }, { quoted: m })
 
         } catch (e) {
