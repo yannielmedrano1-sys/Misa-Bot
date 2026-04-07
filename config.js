@@ -3,7 +3,7 @@ export const config = {
     // Tus dos identidades oficiales para reconocimiento total
     owner: [
         '573508941325@s.whatsapp.net', 
-        '573229608749.whatsapp.net'
+        '573229608749@s.whatsapp.net'
         '125860308893859@lid'
     ], 
     prefix: '#', // Prefijo visual predeterminado
