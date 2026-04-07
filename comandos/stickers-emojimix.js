@@ -1,6 +1,10 @@
 // BY ABRAHAN-M 
 
 import fetch from 'node-fetch'
+import { writeFileSync, unlinkSync } from 'fs'
+import { tmpdir } from 'os'
+import path from 'path'
+import { exec } from 'child_process'
 
 const emojimixCommand = {
     name: 'emojimix',
@@ -29,7 +33,7 @@ const emojimixCommand = {
 
             await conn.sendMessage(chat, { react: { text: '🕒', key: m.key } })
 
-            // 🔥 Nombre PRO (igual que QC)
+            // 🔥 nombre PRO
             const db = global.db?.data || {}
             const user = db.users?.[sender] || {}
 
@@ -37,7 +41,6 @@ const emojimixCommand = {
             const packname = user.metadatos || '✨ Emojis Mix'
             const author = user.metadatos2 || `@${name}`
 
-            // 🔥 API EMOJI KITCHEN
             const url = `https://tenor.googleapis.com/v2/featured?key=AIzaSyAyimkuYQYF_FXVALexPuGQctUWRURdCYQ&contentfilter=high&media_filter=png_transparent&component=proactive&collection=emoji_kitchen_v5&q=${encodeURIComponent(emoji1)}_${encodeURIComponent(emoji2)}`
 
             const res = await fetch(url)
@@ -47,19 +50,27 @@ const emojimixCommand = {
                 throw new Error('No se encontraron combinaciones 😢')
             }
 
-            // 🔥 ENVÍO DIRECTO COMO STICKER
-            for (let result of json.results.slice(0, 5)) {
-                const buffer = await (await fetch(result.url)).arrayBuffer()
+            for (let result of json.results.slice(0, 3)) {
+                const buffer = Buffer.from(await (await fetch(result.url)).arrayBuffer())
 
-                await conn.sendImageAsSticker(
-                    chat,
-                    Buffer.from(buffer),
-                    m,
-                    {
-                        packname,
-                        author
-                    }
-                )
+                const input = path.join(tmpdir(), `emix-${Date.now()}.png`)
+                const output = path.join(tmpdir(), `emix-${Date.now()}.webp`)
+
+                writeFileSync(input, buffer)
+
+                await new Promise((resolve, reject) => {
+                    exec(`ffmpeg -i ${input} -vf "scale=512:512:force_original_aspect_ratio=decrease" ${output}`, (err) => {
+                        if (err) reject(err)
+                        else resolve()
+                    })
+                })
+
+                await conn.sendMessage(chat, {
+                    sticker: { url: output }
+                }, { quoted: m })
+
+                unlinkSync(input)
+                unlinkSync(output)
             }
 
             await conn.sendMessage(chat, { react: { text: '✔️', key: m.key } })
@@ -77,3 +88,4 @@ const emojimixCommand = {
 }
 
 export default emojimixCommand
+        
