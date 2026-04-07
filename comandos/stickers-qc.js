@@ -1,5 +1,3 @@
-// ABRAHAN-M
-
 import axios from 'axios'
 
 const qcCommand = {
@@ -50,9 +48,10 @@ const qcCommand = {
 
             const buffer = Buffer.from(res.data.result.image, 'base64')
 
-            // 🔥 ENVÍO DIRECTO SIN ARCHIVOS
+            // 🔥 ENVÍO COMO IMAGEN (NO STICKER)
             await conn.sendMessage(chat, {
-                sticker: buffer
+                image: buffer,
+                caption: '✨ Tu quote'
             }, { quoted: m })
 
             await conn.sendMessage(chat, { react: { text: '✔️', key: m.key } })
@@ -63,7 +62,7 @@ const qcCommand = {
             await conn.sendMessage(chat, { react: { text: '✖️', key: m.key } })
 
             await conn.sendMessage(chat, {
-                text: '❌ Error al crear el sticker'
+                text: '❌ Error al crear el quote'
             }, { quoted: m })
         }
     }
