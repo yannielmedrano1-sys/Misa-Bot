@@ -1,3 +1,8 @@
+/* Código creado por Yanniel
+por favor y no quites los créditos.
+https://github.com/yannielmedrano1-sys
+*/
+
 import { downloadContentFromMessage, getContentType } from '@whiskeysockets/baileys';
 import { Sticker, StickerTypes } from 'wa-sticker-formatter';
 
