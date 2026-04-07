@@ -15,8 +15,8 @@ const playCommand = {
         const prefijo = usedPrefix || ''
 
         if (!text) {
-            return conn.sendMessage(chat, {
-                text: `🖤 *¿Qué quieres escuchar?*\n\nEjemplo: \`${prefijo + command} Media Hora\``
+            return conn.sendMessage(chat, { 
+                text: `🖤 *¿Qué quieres escuchar?*\n\nEjemplo: \`${prefijo + command} Media Hora\`` 
             }, { quoted: m })
         }
 
@@ -32,30 +32,49 @@ const playCommand = {
             const id = v.videoId
 
             let audioUrl = v.dl
-            let vistas = v.views
+            let vistasReales = v.views
 
-            // ⚡ Intento rápido con API principal
+            // ⚡ API rápida con timeout
             try {
-                const { data: nexy } = await axios.get(
+                const { data: resNexy } = await axios.get(
                     `https://api.nexylight.xyz/dl/ytmp3?id=${id}&key=nexy-9ccbbb`,
-                    { timeout: 5000 } // evita bloqueos largos
+                    { timeout: 5000 }
                 )
 
-                if (nexy.status) {
-                    audioUrl = nexy.download.url
-                    vistas = nexy.data.views
+                if (resNexy.status) {
+                    audioUrl = resNexy.download.url
+                    vistasReales = resNexy.data.views
                 }
             } catch {}
 
-            // ⚡ Solo un mensaje de progreso (rápido)
-            const { key } = await conn.sendMessage(chat, {
-                text: '📥 *Procesando audio...*'
+            // ⚡ ANIMACIÓN (MISMA ESTÉTICA PERO LIGERA)
+            const { key } = await conn.sendMessage(chat, { 
+                text: '📥 *Descargando:* `10%` █▒▒▒▒▒▒▒▒▒' 
             })
 
-            // 🧠 Formatear vistas
+            const steps = [30, 60, 100]
+
+            const getBar = (p) => {
+                const filled = Math.floor(p / 10)
+                return '█'.repeat(filled) + '▒'.repeat(10 - filled)
+            }
+
+            for (let p of steps) {
+                await new Promise(r => setTimeout(r, 120))
+                await conn.sendMessage(chat, {
+                    text: `📥 *Descargando:* \`${p}%\` ${getBar(p)}`,
+                    edit: key
+                })
+            }
+
+            // 🧠 FORMATEO (igual pero optimizado)
             const formatViews = (views) => {
                 if (!views) return "0"
-                let n = parseInt(views.toString().replace(/\D/g, '')) || 0
+                let str = views.toString().toLowerCase()
+
+                if (/[kmb]/.test(str)) return str.replace(/[^0-9.kmb]/g, '').toUpperCase()
+
+                let n = parseInt(str.replace(/\D/g, '')) || 0
 
                 if (n >= 1e9) return (n / 1e9).toFixed(1) + 'B'
                 if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M'
@@ -64,46 +83,49 @@ const playCommand = {
                 return n.toLocaleString()
             }
 
-            await conn.sendMessage(chat, { react: { text: '🎶', key: m.key } })
+            await conn.sendMessage(chat, { react: { text: '✅', key: m.key } })
 
-            // 📄 Info
-            await conn.sendMessage(chat, {
-                text: `✧ *YOUTUBE AUDIO*
+            const textoPlay = `✧ ‧₊˚ *YOUTUBE AUDIO* ୧ֹ˖ ⑅ ࣪⊹
+⊹₊ ˚‧︵‿₊୨୧₊‿︵‧ ˚ ₊⊹
+✰ Título: ${v.title || "?"}
+   › ✿ \`Canal\`: *${v.author?.name || "YouTube"}*
+   › ✦ \`Duración\`: *${v.duration || "??:??"}*
+   › ꕤ \`Vistas\`: *${formatViews(vistasReales)}*
+   › ❖ \`Link\`: *${v.url}*
 
-✰ Título: ${v.title}
-› Canal: ${v.author?.name || "YouTube"}
-› Duración: ${v.duration}
-› Vistas: ${formatViews(vistas)}
-› Link: ${v.url}`,
+> Powered by 𝓜𝓲𝓼𝓪 ♡`.trim()
+
+            await conn.sendMessage(chat, { 
+                text: textoPlay,
                 contextInfo: {
                     externalAdReply: {
                         title: v.title,
-                        body: 'Audio listo 🎧',
+                        body: '𝓜𝓲𝓼𝓪  𝘿𝙤𝙬𝙣𝙡𝙤𝙖𝙙𝙚𝙧 🖤',
                         thumbnailUrl: v.image || v.thumbnail,
                         sourceUrl: v.url,
                         mediaType: 1,
-                        renderLargerThumbnail: true
+                        renderLargerThumbnail: true,
+                        showAdAttribution: false
                     }
                 }
             }, { quoted: m })
 
-            // 🚀 ENVÍO DIRECTO (más rápido)
-            await conn.sendMessage(chat, {
+            // 🚀 ENVÍO RÁPIDO
+            await conn.sendMessage(chat, { 
                 audio: { url: audioUrl },
                 mimetype: 'audio/mpeg',
                 fileName: `${v.title}.mp3`
             }, { quoted: m })
 
-            await conn.sendMessage(chat, {
-                text: '✅ *Listo, disfruta tu audio*',
-                edit: key
+            await conn.sendMessage(chat, { 
+                text: '🖤 *Audio enviado con éxito :)*', 
+                edit: key 
             })
 
         } catch (err) {
             console.error(err)
-
-            await conn.sendMessage(chat, {
-                text: '❌ *Error al obtener el audio*'
+            await conn.sendMessage(chat, { 
+                text: '> ✐ no se pudo obtener ese audio.' 
             }, { quoted: m })
         }
     }
