@@ -51,7 +51,29 @@ export const pixelHandler = async (conn, m, config) => {
 
         const allPrefixes = config.allPrefixes || ['#', '!', '.'];
         const usedPrefix = allPrefixes.find(p => body.startsWith(p));
-        
+       
+        // 🧠 --- LÓGICA DE CONVERSACIÓN CONTINUA ---
+const isReplyToBot = m.message?.extendedTextMessage?.contextInfo?.participant === conn.user.id.split(':')[0] + '@s.whatsapp.net' || 
+                     m.message?.extendedTextMessage?.contextInfo?.participant === conn.user.id;
+
+// Si no hay prefijo, pero es una respuesta a Misa...
+if (!usedPrefix && isReplyToBot && body) {
+    const aiCmd = global.commands.get('ia');
+    if (aiCmd) {
+        // Forzamos la ejecución del comando IA con el texto actual
+        return await aiCmd.run(conn, m, { 
+            body, 
+            prefix: '', 
+            command: 'ia', 
+            args: body.split(/ +/), 
+            text: body, 
+            isOwner, 
+            isGroup, 
+            from: chat,
+            config 
+        });
+    }
+}
         let commandName = usedPrefix 
             ? body.slice(usedPrefix.length).trim().split(/ +/).shift().toLowerCase()
             : body.trim().split(/ +/).shift().toLowerCase();
