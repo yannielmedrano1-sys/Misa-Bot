@@ -21,13 +21,13 @@ const linkCommand = {
             const code = await conn.groupInviteCode(chat)
             const link = `https://chat.whatsapp.com/${code}`
 
-            const teks = `🔗 *ENLACE DEL GRUPO*
+            const teks = `♱ 🔗 ￣꯭̥ᷭ ིྀ⃟♱࣪ 𝐄ׁׅܻ݊𝐍ׁׅ𝐋ׁׅ֮𝐀ׁׅ𝐂ׁׅ֮𝐄ׁׅܻ݊ 𝐃ׁׅ֮𝐄ׁׅܻ݊𝐋ׁׅ֮ 𝐆ׁׅ֮𝐑ׁׅ֮𝐔ׁׅ֮𝐏ׁׅ֮𝐎ׁׅ֮ ￣꯭̥ᷭ ིྀ⃟♱࣪ ♱
 
-📌 Aquí tienes el link del grupo
+📌 \`Aquí tienes el link del grupo\`
 
-👤 Solicitado por: @${user}
+👤 \`Solicitado por\`: @${user}
 
-🌐 Link:
+🌐𖣊\`Link\`:
 ${link}`
 
             await conn.sendMessage(chat, {
