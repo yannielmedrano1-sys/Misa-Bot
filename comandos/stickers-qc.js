@@ -1,21 +1,15 @@
-// BY ABRAHAN-M
+// ABRAHAN-M
 
 import axios from 'axios'
-import fs from 'fs'
 
 const qcCommand = {
     name: 'qc',
     alias: ['quote'],
     category: 'stickers',
     noPrefix: true,
-    isOwner: false,
-    isAdmin: false,
-    isGroup: false,
 
     run: async (conn, m, { text }) => {
         const chat = m.key.remoteJid
-
-        // 🔥 FIX sender global
         const sender = m.sender || m.key.participant || m.key.remoteJid
 
         try {
@@ -23,30 +17,11 @@ const qcCommand = {
 
             if (!textFinal) {
                 return conn.sendMessage(chat, {
-                    text: '✏️ *Escribe un texto o responde a un mensaje*'
-                }, { quoted: m })
-            }
-
-            if (textFinal.length > 30) {
-                await conn.sendMessage(chat, { react: { text: '✖️', key: m.key } })
-                return conn.sendMessage(chat, {
-                    text: '❌ *Máximo 30 caracteres*'
+                    text: '✏️ Escribe o responde a un mensaje'
                 }, { quoted: m })
             }
 
             await conn.sendMessage(chat, { react: { text: '🕒', key: m.key } })
-
-            const target = m.quoted ? 
-                (m.quoted.sender || m.quoted.participant) : 
-                sender
-
-            const pp = await conn.profilePictureUrl(target, 'image')
-                .catch(() => 'https://telegra.ph/file/24fa902ead26340f3df2c.png')
-
-            const db = global.db?.data || {}
-            const userGlobal = db.users?.[target] || {}
-
-            const nombre = userGlobal.name || target.split('@')[0]
 
             const quoteObj = {
                 type: 'quote',
@@ -57,53 +32,38 @@ const qcCommand = {
                 scale: 2,
                 messages: [{
                     entities: [],
-                    avatar: true,
-                    from: {
-                        id: 1,
-                        name: nombre,
-                        photo: { url: pp }
-                    },
-                    text: textFinal,
-                    replyMessage: {}
+                    avatar: false,
+                    from: { name: sender.split('@')[0] },
+                    text: textFinal
                 }]
             }
 
-            const json = await axios.post(
+            const res = await axios.post(
                 'https://bot.lyo.su/quote/generate',
                 quoteObj,
                 { headers: { 'Content-Type': 'application/json' } }
             )
 
-            const buffer = Buffer.from(json.data.result.image, 'base64')
+            if (!res.data?.result?.image) {
+                throw new Error("API no respondió imagen")
+            }
 
-            const user = db.users?.[sender] || {}
-            const name = user.name || sender.split('@')[0]
+            const buffer = Buffer.from(res.data.result.image, 'base64')
 
-            const meta1 = user.metadatos ? String(user.metadatos).trim() : ''
-            const meta2 = user.metadatos2 ? String(user.metadatos2).trim() : ''
-
-            let texto1 = meta1 || '✨ Misa Bot'
-            let texto2 = meta2 || `@${name}`
-
-            const file = `./tmp/qc-${Date.now()}.webp`
-            fs.writeFileSync(file, buffer)
-
-            await conn.sendImageAsSticker(chat, file, m, {
-                packname: texto1,
-                author: texto2
-            })
-
-            fs.unlinkSync(file)
+            // 🔥 ENVÍO DIRECTO SIN ARCHIVOS
+            await conn.sendMessage(chat, {
+                sticker: buffer
+            }, { quoted: m })
 
             await conn.sendMessage(chat, { react: { text: '✔️', key: m.key } })
 
         } catch (e) {
-            console.error(e)
+            console.error("QC ERROR:", e.response?.data || e.message)
 
             await conn.sendMessage(chat, { react: { text: '✖️', key: m.key } })
 
             await conn.sendMessage(chat, {
-                text: '❌ *Error al crear el sticker*'
+                text: '❌ Error al crear el sticker'
             }, { quoted: m })
         }
     }
