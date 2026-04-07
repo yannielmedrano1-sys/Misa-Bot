@@ -2,7 +2,6 @@
 por favor y no quites los créditos.
 https://github.com/yannielmedrano1-sys
 */
-
 import { downloadContentFromMessage, getContentType } from '@whiskeysockets/baileys';
 import { Sticker, StickerTypes } from 'wa-sticker-formatter';
 import ffmpeg from 'fluent-ffmpeg';
@@ -38,7 +37,14 @@ const stickerCommand = {
             }
         }
 
-        if (!mediaMessage) return; // Ni responde si no hay nada que convertir
+        if (!mediaMessage) return;
+
+        // 🛑 Error: Video demasiado largo
+        if ((mediaType === 'videoMessage' || mediaMessage?.isAnimated) && mediaMessage?.seconds > 20) {
+            return conn.sendMessage(from, { 
+                text: "› ✐  *Error:* El video excede los 20 segundos. ✧" 
+            }, { quoted: m });
+        }
 
         try {
             const dlType = mediaType.replace('Message', '');
@@ -55,14 +61,15 @@ const stickerCommand = {
                 const tempOutput = join(tmpdir(), `out_${Date.now()}.webp`);
                 fs.writeFileSync(tempInput, buffer);
 
-                await new Promise((resolve) => {
+                await new Promise((resolve, reject) => {
                     ffmpeg(tempInput)
-                        .inputOptions(['-t 7']) // 7 segundos para que vuele
+                        .inputOptions(['-t 8']) 
                         .outputOptions([
                             '-vcodec libwebp',
-                            '-vf scale=512:512:force_original_aspect_ratio=increase,fps=12,crop=512:512',
+                            '-vf scale=512:512:force_original_aspect_ratio=increase,fps=10,crop=512:512',
                             '-lossless 0',
-                            '-q:v 40',
+                            '-compression_level 6',
+                            '-q:v 30',
                             '-loop 0',
                             '-an'
                         ])
@@ -73,7 +80,11 @@ const stickerCommand = {
                             fs.unlinkSync(tempOutput);
                             resolve();
                         })
-                        .on('error', () => resolve()) // Fallback silencioso
+                        .on('error', (err) => {
+                            if (fs.existsSync(tempInput)) fs.unlinkSync(tempInput);
+                            if (fs.existsSync(tempOutput)) fs.unlinkSync(tempOutput);
+                            reject(err);
+                        })
                         .save(tempOutput);
                 });
             }
@@ -82,13 +93,25 @@ const stickerCommand = {
                 pack: '𝓜𝓲𝓼α 𝘽𝙊𝙏 🖤',
                 author: 'Yanniel',
                 type: StickerTypes.FULL,
-                quality: 100
+                quality: 80
             });
 
-            await conn.sendMessage(from, { sticker: await sticker.toBuffer() }, { quoted: m });
+            const stickerBuffer = await sticker.toBuffer();
+            
+            // 🛑 Error: Peso excedido
+            if (stickerBuffer.length > 1000000) {
+                return conn.sendMessage(from, { 
+                    text: "› ✐  *Error:* El archivo es demasiado pesado para procesar. ✧" 
+                }, { quoted: m });
+            }
+
+            await conn.sendMessage(from, { sticker: stickerBuffer }, { quoted: m });
 
         } catch (e) {
-            console.error("Error rápido:", e);
+            // 🛑 Error: Fallo genérico
+            await conn.sendMessage(from, { 
+                text: "› ✐  *Error:* No se pudo procesar el contenido multimedia. ✧" 
+            }, { quoted: m });
         }
     }
 };
