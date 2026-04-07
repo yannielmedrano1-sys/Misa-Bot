@@ -61,7 +61,7 @@ export const startSubBot = async (userId, mainConn = null) => {
                 
                 if (mainConn) {
                     try {
-                        const despedida = `[✿︎] Hola *${userNumber}*.\n\nGracias por haber formado parte de nuestros sockets. Si algún día quieres volver a ser SubBot de Kazuma, puedes hacerlo con el comando *${config.prefix}code*.\n\n> ¡Nos vemos la próxima vez!`;
+                        const despedida = `[✿︎] Hola *${userNumber}*.\n\nGracias por haber formado parte de nuestros sockets. Si algún día quieres volver a ser SubBot de Misa, puedes hacerlo con el comando *${config.prefix}code*.\n\n> ¡Nos vemos la próxima vez!`;
                         await mainConn.sendMessage(jid, { text: despedida });
                     } catch (e) {}
                 }
