@@ -4,7 +4,7 @@ export const config = {
     owner: [
         '573508941325@s.whatsapp.net', 
         '573229608749@s.whatsapp.net',
-        '125860308893859@lid'
+        '125860308893859@lid',
     ], 
     prefix: '#', // Prefijo visual predeterminado
     allPrefixes: ['#', '!', '.'], // Prefijos que el bot siempre reconocerá
