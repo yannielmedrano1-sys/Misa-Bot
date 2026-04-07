@@ -12,7 +12,7 @@ const aiCommand = {
 
     run: async (conn, m, { command, text, from }) => {
         if (!text) return conn.sendMessage(from, { 
-            text: "✿ ¡Hola! Soy *𝓜𝓲𝓼α*, tu asistente. ¿En qué puedo ayudarte hoy? ✧" 
+            text: "✿ ¡Hola! Soy *𝓜𝓲𝓼𝓪*, tu asistente. ¿En qué puedo ayudarte hoy? ✧" 
         }, { quoted: m });
 
         try {
@@ -41,13 +41,12 @@ const aiCommand = {
 
             if (!aiResponse) throw new Error();
 
-            let header = command.toUpperCase() + " - 𝙸𝙰";
+            let header = command.toUpperCase() + " - ASSISTANT";
             const responseText = `✧ ‧₊˚ *${header}* ୧ֹ˖ ⑅ ࣪⊹
-⊹₊ ˚‧︵‿₊୨୧₊‿︵‧ ˚ ₊⊹
 
 ${aiResponse.trim()}
 
-> Powered by 𝓜𝓲𝓼α ♡`;
+> Powered by 𝓜𝓲𝓼𝓪 ♡`;
 
             await conn.sendMessage(from, { text: responseText }, { quoted: m });
             await conn.sendMessage(from, { react: { text: "✅", key: m.key } });
