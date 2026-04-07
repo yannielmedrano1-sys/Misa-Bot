@@ -1,16 +1,23 @@
 import axios from 'axios';
 
-// ꕤ ━━━━━━━━━━ IA UNIFICADA (MISA AMANE PROMPT) ━━━━━━━━━━ ꕤ
+// Memoria temporal de sesiones (se mantiene en RAM)
+global.ia_memory = global.ia_memory || {};
+const limitMemory = 10; // Máximo 10 mensajes (5 preguntas y 5 respuestas) para fluidez
+
+// ꕤ ━━━━━━━━━━ IA UNIFICADA CON MEMORIA (MISA AMANE) ━━━━━━━━━━ ꕤ
 const aiCommand = {
     name: 'ia',
     alias: ['gpt', 'ai', 'gemini', 'copilot', 'chat'],
     category: 'ai',
-    isOwner: false,    // Cualquier usuario puede usar la IA
-    noPrefix: true,     // Responde aunque no pongan el punto (según tu handler)
+    isOwner: false,
+    noPrefix: true,
     isAdmin: false,
     isGroup: false,
 
     run: async (conn, m, { command, text, from }) => {
+        // Obtenemos el ID del que escribe (usamos m.sender que ya limpiamos en el handler)
+        const sender = m.sender || m.key.participant || m.key.remoteJid;
+
         if (!text) return conn.sendMessage(from, { 
             text: "✿ ¡Hola! Soy *𝓜𝓲𝓼𝓪*, tu asistente. ¿En qué puedo ayudarte hoy? ✧" 
         }, { quoted: m });
@@ -19,8 +26,20 @@ const aiCommand = {
             await conn.sendMessage(from, { react: { text: "⏳", key: m.key } });
             await conn.sendPresenceUpdate('composing', from);
 
-            const systemPrompt = `Tu nombre es Misa Amane de Death Note. Eres dulce, impulsiva, adoras a Light y usas emojis como 🍎, 💀, 🖤, ✨, ✿. Eres juguetona y leal. Responde siempre manteniendo este personaje. NO menciones que eres una IA. Responde de forma breve.`;
-            const encodedText = encodeURIComponent(`${systemPrompt}\n\nUsuario: ${text}`);
+            // 1. INICIALIZAR MEMORIA DEL USUARIO
+            if (!global.ia_memory[sender]) global.ia_memory[sender] = [];
+
+            // 2. CONSTRUIR HISTORIAL PARA EL PROMPT
+            // Esto le da el "contexto" a la IA para que recuerde
+            const history = global.ia_memory[sender]
+                .map(msg => `${msg.role === 'user' ? 'Usuario' : 'Misa'}: ${msg.content}`)
+                .join('\n');
+
+            const systemPrompt = `Tu nombre es Misa Amane de Death Note. Eres dulce, impulsiva, adoras a Light y usas emojis como 🍎, 💀, 🖤, ✨, ✿. Eres juguetona y leal. Responde siempre manteniendo este personaje. NO menciones que eres una IA. Responde de forma breve y coqueta.`;
+            
+            // Unimos Todo: Prompt del Sistema + Conversación previa + Pregunta actual
+            const fullText = `${systemPrompt}\n\n${history}\nUsuario: ${text}\nMisa:`;
+            const encodedText = encodeURIComponent(fullText);
 
             const apiBase = {
                 gemini: `https://api.brayanofc.shop/ai/gemini?text=${encodedText}&key=api-gmnch`,
@@ -34,13 +53,23 @@ const aiCommand = {
             for (const url of priority) {
                 if (aiResponse) break;
                 try {
-                    const { data } = await axios.get(url, { timeout: 10000 });
+                    const { data } = await axios.get(url, { timeout: 15000 });
                     aiResponse = data.response || data.result || data.data;
-                } catch (err) { /* fallback */ }
+                } catch (err) { /* fallback automático */ }
             }
 
-            if (!aiResponse) throw new Error();
+            if (!aiResponse) throw new Error("API Offline");
 
+            // 3. GUARDAR LA CHARLA ACTUAL EN LA MEMORIA
+            global.ia_memory[sender].push({ role: 'user', content: text });
+            global.ia_memory[sender].push({ role: 'misa', content: aiResponse.trim() });
+
+            // Si la memoria pasa el límite, borramos lo más viejo
+            if (global.ia_memory[sender].length > limitMemory) {
+                global.ia_memory[sender].splice(0, 2); 
+            }
+
+            // 4. FORMATEO FINAL
             let header = command.toUpperCase() + " - ASSISTANT";
             const responseText = `✧ ‧₊˚ *${header}* ୧ֹ˖ ⑅ ࣪⊹
 
@@ -52,7 +81,8 @@ ${aiResponse.trim()}
             await conn.sendMessage(from, { react: { text: "✅", key: m.key } });
 
         } catch (e) {
-            await conn.sendMessage(from, { text: "⚠️ Inténtalo de nuevo, Light-kun!" }, { quoted: m });
+            console.error(e);
+            await conn.sendMessage(from, { text: "⚠️ Mis sistemas están saturados. ¡Inténtalo de nuevo, Light-kun!" }, { quoted: m });
         }
     }
 };
