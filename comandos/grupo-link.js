@@ -27,7 +27,7 @@ const linkCommand = {
 
 👤 \`Solicitado por\`: @${user}
 
-🔗 \`Link\`𖣊:
+🔗 \`Link\`:
 ${link}`
 
             await conn.sendMessage(chat, {
