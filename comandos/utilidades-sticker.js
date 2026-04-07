@@ -3,118 +3,92 @@ por favor y no quites los créditos.
 https://github.com/yannielmedrano1-sys
 */
 
-import { downloadContentFromMessage, getContentType, downloadMediaMessage } from '@whiskeysockets/baileys';
+import { downloadContentFromMessage, getContentType } from '@whiskeysockets/baileys';
 import { Sticker, StickerTypes } from 'wa-sticker-formatter';
-import P from 'pino';
+import ffmpeg from 'fluent-ffmpeg';
+import fs from 'fs';
+import { join } from 'path';
+import { tmpdir } from 'os';
 
 const stickerCommand = {
     name: 's',
     alias: ['sticker', 'stiker'],
     category: 'tools',
-    isOwner: false,    // Cualquier usuario puede hacer stickers
-    noPrefix: true,   // Mejor dejarlo con prefijo para evitar que confunda fotos normales
+    isOwner: false,
+    noPrefix: true, 
     isAdmin: false,
     isGroup: false,
 
-    run: async (conn, m, { command, from }) => {
-        const chatId = from;
-        if (!chatId) return;
-
-        // Definimos el quoted manualmente para evitar errores de referencia
+    run: async (conn, m, { from }) => {
         const quoted = m.message?.extendedTextMessage?.contextInfo?.quotedMessage;
-
         let mediaMessage = null;
-        let mediaMime = '';
         let mediaType = '';
 
-        // 1. Detección de media en quoted (respondido)
         if (quoted) {
             const quotedType = getContentType(quoted);
-            if (quotedType && /image|video|sticker/.test(quotedType)) {
+            if (/image|video|sticker/.test(quotedType)) {
                 mediaMessage = quoted[quotedType];
-                mediaMime = mediaMessage?.mimetype || '';
                 mediaType = quotedType;
             }
-        }
-
-        // 2. Detección de media en mensaje directo
-        if (!mediaMessage) {
+        } else {
             const msgType = getContentType(m.message);
-            if (msgType && /image|video/.test(msgType)) {
+            if (/image|video/.test(msgType)) {
                 mediaMessage = m.message[msgType];
-                mediaMime = mediaMessage?.mimetype || '';
                 mediaType = msgType;
             }
         }
 
-        // 3. Respuesta si no hay media
-        if (!mediaMessage) {
-            return conn.sendMessage(chatId, {
-                text: "› ✐  *Uso:* Responde a una imagen o video con `.s` ✧"
-            }, { quoted: m });
-        }
-
-        await conn.sendMessage(chatId, { react: { text: "⏳", key: m.key } });
-
-        // Mensaje de estado con estética Misa
-        let statusMsg = await conn.sendMessage(chatId, {
-            text: "⛓️ *𝐂𝐨𝐧𝐯𝐢𝐞𝐫𝐭𝐢𝐞𝐧𝐝𝐨...* ✧\n\n> Powered by 𝓜𝓲𝓼𝓪 ♡"
-        }, { quoted: m });
+        if (!mediaMessage) return; // Ni responde si no hay nada que convertir
 
         try {
-            let isLongVideo = false;
-            if (/video/.test(mediaMime) && mediaMessage?.seconds > 12) {
-                isLongVideo = true;
-            }
+            const dlType = mediaType.replace('Message', '');
+            const stream = await downloadContentFromMessage(mediaMessage, dlType === 'sticker' ? 'sticker' : dlType);
+            let chunks = [];
+            for await (const chunk of stream) chunks.push(chunk);
+            let buffer = Buffer.concat(chunks);
 
-            let buffer;
-            try {
-                let dlType = 'image';
-                if (/video/.test(mediaMime || mediaType)) dlType = 'video';
-                else if (/webp|sticker/.test(mediaMime || mediaType)) dlType = 'sticker';
+            const isVideo = /video/.test(mediaType) || (mediaType === 'stickerMessage' && mediaMessage.isAnimated);
+            let finalBuffer = buffer;
 
-                const stream = await downloadContentFromMessage(mediaMessage, dlType);
-                let chunks = [];
-                for await (const chunk of stream) chunks.push(chunk);
-                buffer = Buffer.concat(chunks);
-            } catch (dlErr) {
-                buffer = await downloadMediaMessage(m, 'buffer', {}, { 
-                    logger: P({ level: 'silent' }),
-                    reuploadRequest: conn.updateMediaMessage 
+            if (isVideo) {
+                const tempInput = join(tmpdir(), `in_${Date.now()}.mp4`);
+                const tempOutput = join(tmpdir(), `out_${Date.now()}.webp`);
+                fs.writeFileSync(tempInput, buffer);
+
+                await new Promise((resolve) => {
+                    ffmpeg(tempInput)
+                        .inputOptions(['-t 7']) // 7 segundos para que vuele
+                        .outputOptions([
+                            '-vcodec libwebp',
+                            '-vf scale=512:512:force_original_aspect_ratio=increase,fps=12,crop=512:512',
+                            '-lossless 0',
+                            '-q:v 40',
+                            '-loop 0',
+                            '-an'
+                        ])
+                        .toFormat('webp')
+                        .on('end', () => {
+                            finalBuffer = fs.readFileSync(tempOutput);
+                            fs.unlinkSync(tempInput);
+                            fs.unlinkSync(tempOutput);
+                            resolve();
+                        })
+                        .on('error', () => resolve()) // Fallback silencioso
+                        .save(tempOutput);
                 });
             }
 
-            if (!buffer || buffer.length < 100) throw new Error("Buffer vacío");
-
-            const sticker = new Sticker(buffer, {
-                pack: '𝓜𝓲𝓼𝓪 𝘽𝙊𝙏 🖤', // Nombre del paquete
-                author: 'Yanniel',     // Autor
+            const sticker = new Sticker(finalBuffer, {
+                pack: '𝓜𝓲𝓼α 𝘽𝙊𝙏 🖤',
+                author: 'Yanniel',
                 type: StickerTypes.FULL,
-                quality: 60,
-                fps: 15,
-                endTime: '00:00:12' 
+                quality: 100
             });
 
-            const stickerBuffer = await sticker.toBuffer();
-
-            // Enviamos el sticker
-            await conn.sendMessage(chatId, { sticker: stickerBuffer }, { quoted: m });
-
-            // Mensaje final editado
-            await conn.sendMessage(chatId, {
-                text: isLongVideo ? "⚠️ *Recortado a 12s*" : "✨ *𝐒𝐭𝐢𝐜𝐤𝐞𝐫 𝐥𝐢𝐬𝐭𝐨* 🖤",
-                edit: statusMsg.key
-            });
-
-            await conn.sendMessage(chatId, { react: { text: "✅", key: m.key } });
+            await conn.sendMessage(from, { sticker: await sticker.toBuffer() }, { quoted: m });
 
         } catch (e) {
-            console.error("Sticker Error:", e);
-            await conn.sendMessage(chatId, { react: { text: "❌", key: m.key } });
-            await conn.sendMessage(chatId, {
-                text: `❌ *𝐄𝐑𝐑𝐎𝐑:* Reintenta enviando de nuevo el archivo.`,
-                edit: statusMsg.key
-            });
+            console.error("Error rápido:", e);
         }
     }
 };
