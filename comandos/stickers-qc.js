@@ -19,17 +19,21 @@ const qcCommand = {
 
             if (!textFinal) {
                 return conn.sendMessage(chat, {
-                    text: '✏️ Escribe o responde a un mensaje'
+                    text: '✏️ Debes escribir un mensaje'
                 }, { quoted: m })
             }
 
             await conn.sendMessage(chat, { react: { text: '🕒', key: m.key } })
 
-            // 🔥 obtener foto de perfil
+            // 🔥 FOTO PERFIL
             const pp = await conn.profilePictureUrl(sender, 'image')
                 .catch(() => 'https://telegra.ph/file/24fa902ead26340f3df2c.png')
 
-            const name = sender.split('@')[0]
+            // 🔥 NOMBRE PRO (WHATSAPP + DB + FALLBACK)
+            const db = global.db?.data || {}
+            const user = db.users?.[sender] || {}
+
+            const name = user.name || m.pushName || sender.split('@')[0]
 
             const quoteObj = {
                 type: 'quote',
@@ -40,7 +44,7 @@ const qcCommand = {
                 scale: 2,
                 messages: [{
                     entities: [],
-                    avatar: true, // 🔥 ACTIVADO
+                    avatar: true,
                     from: {
                         id: 1,
                         name: name,
