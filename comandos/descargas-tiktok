@@ -2,24 +2,23 @@ import fetch from 'node-fetch'
 
 const tiktokCommand = {
     name: 'tiktok',
-    alias: ['tt', 'tiktoksearch', 'ttsearch', 'tts'],
+    alias: ['tt', 'tts'],
     category: 'downloader',
     isOwner: false,
     noPrefix: true,
     isAdmin: false,
     isGroup: false,
 
-    run: async (conn, m, { text, usedPrefix, command }) => {
+    run: async (conn, m, { text, command }) => {
         const chat = m.key.remoteJid
-        const prefijo = usedPrefix || ''
 
         if (!text) {
             return conn.sendMessage(chat, {
-                text: `🖤 *Ingresa un link o búsqueda de TikTok*\n\nEjemplo: \`${prefijo + command} gatos graciosos\``
+                text: `🖤 *¿Qué quieres buscar en TikTok?*\n\nEjemplo: \`${command} gatos\``
             }, { quoted: m })
         }
 
-        const isUrl = /(?:https:?\/{2})?(?:w{3}|vm|vt|t)?\.?tiktok.com\/([^\s&]+)/gi.test(text)
+        const isUrl = /tiktok\.com/.test(text)
 
         const endpoint = isUrl
             ? `https://api.stellarwa.xyz/dl/tiktok?url=${encodeURIComponent(text)}&key=YukiWaBot`
@@ -37,78 +36,37 @@ const tiktokCommand = {
                 }, { quoted: m })
             }
 
-            // 📥 Cargando rápido (estético)
+            // ⚡ Mensaje rápido (como tu play)
             const { key } = await conn.sendMessage(chat, {
                 text: '📥 *Procesando TikTok...*'
             })
 
             if (isUrl) {
-                const { title, duration, dl, author, stats, created_at, type } = json.data
+                const v = json.data
+                const videoUrl = Array.isArray(v.dl) ? v.dl[0] : v.dl
 
                 const caption = `ㅤ۟∩　ׅ　★ ໌　ׅ　🅣𝗂𝗄𝖳𝗈𝗄 🅓ownload　ׄᰙ
-
-𖣣ֶㅤ֯⌗ ✎  ׄ ⬭ *Título:* ${title || 'Sin título'}
-𖣣ֶㅤ֯⌗ ꕥ  ׄ ⬭ *Autor:* ${author?.nickname || author?.unique_id || 'Desconocido'}
-𖣣ֶㅤ֯⌗ ⴵ  ׄ ⬭ *Duración:* ${duration || 'N/A'}
-𖣣ֶㅤ֯⌗ ❖  ׄ ⬭ *Likes:* ${(stats?.likes || 0).toLocaleString()}
-𖣣ֶㅤ֯⌗ ❀  ׄ ⬭ *Comentarios:* ${(stats?.comments || 0).toLocaleString()}
-𖣣ֶㅤ֯⌗ ✿  ׄ ⬭ *Vistas:* ${(stats?.views || stats?.plays || 0).toLocaleString()}
-𖣣ֶㅤ֯⌗ ☆  ׄ ⬭ *Compartidos:* ${(stats?.shares || 0).toLocaleString()}
-𖣣ֶㅤ֯⌗ ☁︎  ׄ ⬭ *Fecha:* ${created_at || 'N/A'}`.trim()
-
-                if (type === 'image') {
-                    for (let img of dl) {
-                        await conn.sendMessage(chat, {
-                            image: { url: img },
-                            caption
-                        }, { quoted: m })
-                    }
-
-                    // 🎵 audio extra
-                    try {
-                        const audioRes = await fetch(`https://www.tikwm.com/api/?url=${encodeURIComponent(text)}&hd=1`)
-                        const audioJson = await audioRes.json()
-                        const audioUrl = audioJson?.data?.play
-
-                        if (audioUrl) {
-                            await conn.sendMessage(chat, {
-                                audio: { url: audioUrl },
-                                mimetype: 'audio/mp4',
-                                fileName: 'tiktok_audio.mp4'
-                            }, { quoted: m })
-                        }
-                    } catch {}
-                } else {
-                    const videoUrl = Array.isArray(dl) ? dl[0] : dl
-
-                    await conn.sendMessage(chat, {
-                        video: { url: videoUrl },
-                        caption
-                    }, { quoted: m })
-                }
-
-            } else {
-                const results = json.data?.filter(v => v.dl)?.slice(0, 5)
-
-                if (!results.length) {
-                    return conn.sendMessage(chat, {
-                        text: '> ✐ No hay resultados válidos.'
-                    }, { quoted: m })
-                }
-
-                for (let v of results) {
-                    const caption = `ㅤ۟∩　ׅ　★ ໌　ׅ　🅣𝗂𝗄𝖳𝗈𝗄 🅓ownload　ׄᰙ
 
 𖣣ֶㅤ֯⌗ ✎  ׄ ⬭ *Título:* ${v.title || 'Sin título'}
 𖣣ֶㅤ֯⌗ ꕥ  ׄ ⬭ *Autor:* ${v.author?.nickname || 'Desconocido'}
 𖣣ֶㅤ֯⌗ ⴵ  ׄ ⬭ *Duración:* ${v.duration || 'N/A'}
 𖣣ֶㅤ֯⌗ ❖  ׄ ⬭ *Likes:* ${(v.stats?.likes || 0).toLocaleString()}
-𖣣ֶㅤ֯⌗ ❀  ׄ ⬭ *Comentarios:* ${(v.stats?.comments || 0).toLocaleString()}
 𖣣ֶㅤ֯⌗ ✿  ׄ ⬭ *Vistas:* ${(v.stats?.views || 0).toLocaleString()}`.trim()
+
+                await conn.sendMessage(chat, {
+                    video: { url: videoUrl },
+                    caption
+                }, { quoted: m })
+
+            } else {
+                const results = json.data?.slice(0, 3)
+
+                for (let v of results) {
+                    if (!v.dl) continue
 
                     await conn.sendMessage(chat, {
                         video: { url: v.dl },
-                        caption
+                        caption: `🎵 ${v.title || 'Sin título'}`
                     }, { quoted: m })
                 }
             }
@@ -121,8 +79,10 @@ const tiktokCommand = {
             await conn.sendMessage(chat, { react: { text: '🎶', key: m.key } })
 
         } catch (e) {
+            console.error(e)
+
             await conn.sendMessage(chat, {
-                text: `> ✐ Error: ${e.message}`
+                text: '❌ *Error al procesar TikTok*'
             }, { quoted: m })
         }
     }
