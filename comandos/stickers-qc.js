@@ -25,6 +25,12 @@ const qcCommand = {
 
             await conn.sendMessage(chat, { react: { text: '🕒', key: m.key } })
 
+            // 🔥 obtener foto de perfil
+            const pp = await conn.profilePictureUrl(sender, 'image')
+                .catch(() => 'https://telegra.ph/file/24fa902ead26340f3df2c.png')
+
+            const name = sender.split('@')[0]
+
             const quoteObj = {
                 type: 'quote',
                 format: 'png',
@@ -34,9 +40,14 @@ const qcCommand = {
                 scale: 2,
                 messages: [{
                     entities: [],
-                    avatar: false,
-                    from: { name: sender.split('@')[0] },
-                    text: textFinal
+                    avatar: true, // 🔥 ACTIVADO
+                    from: {
+                        id: 1,
+                        name: name,
+                        photo: { url: pp }
+                    },
+                    text: textFinal,
+                    replyMessage: {}
                 }]
             }
 
@@ -52,13 +63,11 @@ const qcCommand = {
 
             const buffer = Buffer.from(res.data.result.image, 'base64')
 
-            // 🔥 guardar temporal
             const input = path.join(tmpdir(), `qc-${Date.now()}.png`)
             const output = path.join(tmpdir(), `qc-${Date.now()}.webp`)
 
             writeFileSync(input, buffer)
 
-            // 🔥 CONVERSIÓN REAL A WEBP
             await new Promise((resolve, reject) => {
                 exec(`ffmpeg -i ${input} -vf "scale=512:512:force_original_aspect_ratio=decrease" ${output}`, (err) => {
                     if (err) reject(err)
@@ -66,7 +75,6 @@ const qcCommand = {
                 })
             })
 
-            // 🔥 enviar sticker real
             await conn.sendMessage(chat, {
                 sticker: { url: output }
             }, { quoted: m })
@@ -82,7 +90,7 @@ const qcCommand = {
             await conn.sendMessage(chat, { react: { text: '✖️', key: m.key } })
 
             await conn.sendMessage(chat, {
-                text: '❌ Error al crear el sticker (revisa ffmpeg)'
+                text: '❌ Error al crear el sticker'
             }, { quoted: m })
         }
     }
