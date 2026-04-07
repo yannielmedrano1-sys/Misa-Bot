@@ -1,6 +1,6 @@
 /* 𝓜𝓲𝓼𝓪 𝘽𝙊𝙏 - INDEX ENGINE 
    Desarrollado por Yanniel
-   Optimización: Misa Bot Multi-Device
+   Estética: Gothic Black & White
 */
 
 import { 
@@ -31,10 +31,9 @@ const rl = createInterface({ input: process.stdin, output: process.stdout });
 const question = (text) => new Promise((resolve) => rl.question(text, resolve));
 
 global.commands = new Map();
-global.totalCommandsUsed = 0; 
 
 global.loadCommands = async () => {
-    process.stdout.write(chalk.magenta('  [⚙️] Cargando módulos de comandos... '));
+    process.stdout.write(chalk.white('  [⚙️] Cargando módulos de comandos... '));
     const commandsPath = path.resolve(__dirname, 'comandos');
     if (!fs.existsSync(commandsPath)) fs.mkdirSync(commandsPath);
     global.commands.clear();
@@ -52,7 +51,7 @@ global.loadCommands = async () => {
             console.log(chalk.red(`\n  [❌] Error en ${file}:`), e.message);
         }
     }
-    process.stdout.write(chalk.whiteBright(`LISTO (${global.commands.size})\n`));
+    process.stdout.write(chalk.gray(`LISTO (${global.commands.size})\n`));
 };
 
 async function startBot() {
@@ -62,15 +61,16 @@ async function startBot() {
 
     process.stdout.write('\x1Bc'); 
     
+    // Banner MISA en Blanco y Negro
     CFonts.say('MISA', { 
-        font: 'block', align: 'center', colors: ['magenta', 'white'], background: 'transparent', letterSpacing: 1 
+        font: 'block', align: 'center', colors: ['white', 'gray'], background: 'transparent', letterSpacing: 1 
     });
 
-    console.log(chalk.magenta('  ' + '─'.repeat(50)));
-    console.log(chalk.magenta('  [📱] SISTEMA:') + chalk.white(` 𝓜𝓲𝓼𝓪 𝘽𝙊𝙏 🖤`));
-    console.log(chalk.magenta('  [👤] DEVELOPER:') + chalk.white(` Yanniel`));
-    console.log(chalk.magenta('  [🛠️] BAILEYS:') + chalk.white(` v${version.join('.')}`));
-    console.log(chalk.magenta('  ' + '─'.repeat(50)) + '\n');
+    console.log(chalk.gray('  ' + '─'.repeat(50)));
+    console.log(chalk.white('  [📱] SISTEMA:') + chalk.gray(` 𝓜𝓲𝓼𝓪 𝘽𝙊𝙏 🖤`));
+    console.log(chalk.white('  [👤] DEVELOPER:') + chalk.gray(` Yanniel`));
+    console.log(chalk.white('  [🛠️] BAILEYS:') + chalk.gray(` v${version.join('.')}`));
+    console.log(chalk.gray('  ' + '─'.repeat(50)) + '\n');
 
     const conn = makeWASocket({
         version,
@@ -87,38 +87,38 @@ async function startBot() {
     await global.loadCommands();
 
     if (!conn.authState.creds.registered) {
-        console.log(chalk.magenta('  [!] Inicializando vinculación para 𝓜𝓲𝓼𝓪 𝘽𝙊𝙏...'));
+        console.log(chalk.white('  [!] Inicializando vinculación para 𝓜𝓲𝓼𝓪 𝘽𝙊𝙏...'));
         
         setTimeout(async () => {
-            console.log(chalk.magenta('\n  ╔══════════════════════════════════════╗'));
-            console.log(chalk.magenta('  ║          VINCULACIÓN - 𝓜𝓲𝓼𝓪 𝘽𝙊𝙏        ║'));
-            console.log(chalk.magenta('  ╚══════════════════════════════════════╝'));
+            console.log(chalk.white('\n  ╔══════════════════════════════════════╗'));
+            console.log(chalk.white('  ║          VINCULACIÓN - 𝓜𝓲𝓼𝓪 𝘽𝙊𝙏        ║'));
+            console.log(chalk.white('  ╚══════════════════════════════════════╝'));
 
             let phoneNumber = "";
             let isValid = false;
 
             while (!isValid) {
-                let input = await question(chalk.magenta('\n  [?] Introduce tu número:\n  > '));
+                let input = await question(chalk.white('\n  [?] Introduce tu número:\n  > '));
                 phoneNumber = input.replace(/[^0-9]/g, '');
 
                 if (!phoneNumber || phoneNumber.length < 10) {
-                    console.log(chalk.red('  [!] ERROR: Número inválido.'));
+                    console.log(chalk.gray('  [!] ERROR: Número inválido.'));
                 } else {
                     isValid = true; 
                 }
             }
 
-            console.log(chalk.white('\n  [⏳] Generando código para: ') + chalk.magenta(phoneNumber));
+            console.log(chalk.gray('\n  [⏳] Generando código para: ') + chalk.white(phoneNumber));
 
             try {
                 let code = await conn.requestPairingCode(phoneNumber);
                 code = code?.match(/.{1,4}/g)?.join('-') || code;
 
-                console.log('\n' + chalk.black.bgMagenta('  ╔════════════════════════════════════╗  '));
-                console.log(chalk.black.bgMagenta(`  ║         CODIGO MISA: ${code}         ║  `));
-                console.log(chalk.black.bgMagenta('  ╚════════════════════════════════════╝  ') + '\n');
+                console.log('\n' + chalk.black.bgWhite('  ╔════════════════════════════════════╗  '));
+                console.log(chalk.black.bgWhite(`  ║         CODIGO MISA: ${code}         ║  `));
+                console.log(chalk.black.bgWhite('  ╚════════════════════════════════════╝  ') + '\n');
             } catch (error) {
-                console.error(chalk.red('  [!] Error al generar código:'), error.message);
+                console.error(chalk.white('  [!] Error al generar código:'), error.message);
                 process.exit(1);
             }
         }, 3000);
@@ -132,16 +132,16 @@ async function startBot() {
         if (connection === 'close') {
             const isLoggedOut = lastDisconnect.error?.output?.statusCode === DisconnectReason.loggedOut;
             if (isLoggedOut) {
-                console.log(chalk.red.bold('\n  [!] SESIÓN CERRADA. Limpiando datos...'));
+                console.log(chalk.white.bold('\n  [!] SESIÓN CERRADA. Limpiando datos...'));
                 if (fs.existsSync(sessionDir)) fs.rmSync(sessionDir, { recursive: true, force: true });
                 process.exit(0);
             } else {
-                console.log(chalk.magenta('  [!] Reconectando 𝓜𝓲𝓼𝓪 𝘽𝙊𝙏...'));
+                console.log(chalk.gray('  [!] Reconectando 𝓜𝓲𝓼𝓪 𝘽𝙊𝙏...'));
                 startBot();
             }
         } else if (connection === 'open') {
-            console.log(chalk.magenta.bold('\n  [✨] ¡𝓜𝓘𝓢𝓐 𝘽𝙊𝙏 CONECTADA CON ÉXITO! 🖤🔥'));
-            console.log(chalk.magenta('  ' + '─'.repeat(50)));
+            console.log(chalk.white.bold('\n  [✨] ¡𝓜𝓘𝓢𝓐 𝘽𝙊𝙏 CONECTADA CON ÉXITO! 🖤🔥'));
+            console.log(chalk.gray('  ' + '─'.repeat(50)));
             await loadAllSubBots(conn);
         }
     });
