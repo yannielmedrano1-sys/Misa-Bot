@@ -4,12 +4,14 @@ const tiktokCommand = {
     name: 'tiktok',
     alias: ['tt', 'tts'],
     category: 'downloader',
+    noPrefix: true, // 🔥 ESTO ERA CLAVE
     isOwner: false,
-    noPrefix: true,
     isAdmin: false,
     isGroup: false,
 
     run: async (conn, m, { text, command }) => {
+        console.log("TIKTOK EJECUTADO") // debug
+
         const chat = m.key.remoteJid
 
         if (!text) {
@@ -18,71 +20,32 @@ const tiktokCommand = {
             }, { quoted: m })
         }
 
-        const isUrl = /tiktok\.com/.test(text)
-
-        const endpoint = isUrl
-            ? `https://api.stellarwa.xyz/dl/tiktok?url=${encodeURIComponent(text)}&key=YukiWaBot`
-            : `https://api.stellarwa.xyz/search/tiktok?query=${encodeURIComponent(text)}&key=YukiWaBot`
-
         try {
             await conn.sendMessage(chat, { react: { text: '⏳', key: m.key } })
 
-            const res = await fetch(endpoint)
+            const res = await fetch(`https://api.stellarwa.xyz/search/tiktok?query=${encodeURIComponent(text)}&key=YukiWaBot`)
             const json = await res.json()
 
-            if (!json.status) {
+            if (!json.status || !json.data?.length) {
                 return conn.sendMessage(chat, {
-                    text: '> ✐ No se encontró contenido válido.'
+                    text: '> ✐ No se encontró contenido.'
                 }, { quoted: m })
             }
 
-            // ⚡ Mensaje rápido (como tu play)
-            const { key } = await conn.sendMessage(chat, {
-                text: '📥 *Procesando TikTok...*'
-            })
-
-            if (isUrl) {
-                const v = json.data
-                const videoUrl = Array.isArray(v.dl) ? v.dl[0] : v.dl
-
-                const caption = `ㅤ۟∩　ׅ　★ ໌　ׅ　🅣𝗂𝗄𝖳𝗈𝗄 🅓ownload　ׄᰙ
-
-𖣣ֶㅤ֯⌗ ✎  ׄ ⬭ *Título:* ${v.title || 'Sin título'}
-𖣣ֶㅤ֯⌗ ꕥ  ׄ ⬭ *Autor:* ${v.author?.nickname || 'Desconocido'}
-𖣣ֶㅤ֯⌗ ⴵ  ׄ ⬭ *Duración:* ${v.duration || 'N/A'}
-𖣣ֶㅤ֯⌗ ❖  ׄ ⬭ *Likes:* ${(v.stats?.likes || 0).toLocaleString()}
-𖣣ֶㅤ֯⌗ ✿  ׄ ⬭ *Vistas:* ${(v.stats?.views || 0).toLocaleString()}`.trim()
-
-                await conn.sendMessage(chat, {
-                    video: { url: videoUrl },
-                    caption
-                }, { quoted: m })
-
-            } else {
-                const results = json.data?.slice(0, 3)
-
-                for (let v of results) {
-                    if (!v.dl) continue
-
-                    await conn.sendMessage(chat, {
-                        video: { url: v.dl },
-                        caption: `🎵 ${v.title || 'Sin título'}`
-                    }, { quoted: m })
-                }
-            }
+            const v = json.data[0]
 
             await conn.sendMessage(chat, {
-                text: '✅ *Contenido enviado con éxito*',
-                edit: key
-            })
+                video: { url: v.dl },
+                caption: `🎵 ${v.title || 'Sin título'}`
+            }, { quoted: m })
 
-            await conn.sendMessage(chat, { react: { text: '🎶', key: m.key } })
+            await conn.sendMessage(chat, { react: { text: '✅', key: m.key } })
 
         } catch (e) {
             console.error(e)
 
             await conn.sendMessage(chat, {
-                text: '❌ *Error al procesar TikTok*'
+                text: '❌ Error al procesar TikTok'
             }, { quoted: m })
         }
     }
