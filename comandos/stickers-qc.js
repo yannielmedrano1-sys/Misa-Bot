@@ -48,11 +48,11 @@ const qcCommand = {
 
             const buffer = Buffer.from(res.data.result.image, 'base64')
 
-            // 🔥 ENVÍO COMO IMAGEN (NO STICKER)
-            await conn.sendMessage(chat, {
-                image: buffer,
-                caption: '✨ Tu quote'
-            }, { quoted: m })
+            // 🔥 AQUÍ ESTÁ LA MAGIA
+            await conn.sendImageAsSticker(chat, buffer, m, {
+                packname: '✨ Misa Bot',
+                author: sender.split('@')[0]
+            })
 
             await conn.sendMessage(chat, { react: { text: '✔️', key: m.key } })
 
@@ -62,7 +62,7 @@ const qcCommand = {
             await conn.sendMessage(chat, { react: { text: '✖️', key: m.key } })
 
             await conn.sendMessage(chat, {
-                text: '❌ Error al crear el quote'
+                text: '❌ Error al crear el sticker'
             }, { quoted: m })
         }
     }
