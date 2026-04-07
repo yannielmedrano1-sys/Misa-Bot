@@ -53,9 +53,9 @@ const codeCommand = {
                 text: `✿︎ \`Vinculación del socket\` ✿︎\n\n*❁* \`Pasos a seguir:\` \nDispositivos vinculados > vincular nuevo dispositivo > Vincular con número de teléfono > ingresa el código.\n\n\`Nota\` » El código es válido por *60 segundos*.`,
                 contextInfo: {
                     externalAdReply: {
-                        title: 'KAZUMA - CÓDIGO GENERADO',
+                        title: '𝓜𝓲𝓼𝓪  - CÓDIGO GENERADO',
                         body: `Número: ${targetNumber}`,
-                        thumbnailUrl: 'https://files.catbox.moe/9ssbf9.jpg',
+                        thumbnailUrl: 'https://i.pinimg.com/736x/76/5d/6a/765d6a38dabef1dbc968dbd8f0f65768.jpg',
                         mediaType: 1,
                         renderLargerThumbnail: false
                     }
