@@ -41,9 +41,9 @@ export default {
                 text: texto.trim(),
                 contextInfo: {
                     externalAdReply: {
-                        title: 'KAZUMA - BOTS STATUS',
+                        title: '𝓜𝓲𝓼𝓪  - BOTS STATUS',
                         body: 'Lista de bots activos en la red',
-                        thumbnailUrl: 'https://files.catbox.moe/9ssbf9.jpg',
+                        thumbnailUrl: 'https://i.pinimg.com/736x/d9/8e/01/d98e018fab6316e43c244546d432b3cb.jpg',
                         mediaType: 1,
                         renderLargerThumbnail: false
                     }
