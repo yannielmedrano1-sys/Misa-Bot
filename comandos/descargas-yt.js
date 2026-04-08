@@ -15,51 +15,82 @@ const playCommand = {
         const chat = m.key.remoteJid
         const prefijo = usedPrefix || ''
 
-        if (!text) {
-            return conn.sendMessage(chat, { 
-                text: `🖤 *¿Qué escuchamos?*\n\n> ✐ \`${prefijo + command} Media Hora\`` 
-            }, { quoted: m })
-        }
+        if (!text) return conn.sendMessage(chat, { text: `🖤 *¿Qué quieres escuchar?*\n\n> ✐ *Ejemplo:* \`${prefijo + command} Media Hora\`` }, { quoted: m })
 
         try {
-            // 🔍 1. Búsqueda instantánea
+            // 🔍 1. Búsqueda inteligente (aunque solo pongan "Romero")
             const search = await yts(text)
             const v = search.videos[0]
 
-            if (!v) return conn.sendMessage(chat, { text: '> ✐ No se encontró nada.' }, { quoted: m })
+            if (!v) return conn.sendMessage(chat, { text: '> ✐ No encontré nada relacionado con eso.' }, { quoted: m })
 
-            // 🚀 2. Intento de descarga (Ráfaga de APIs)
+            const url = v.url
+            const videoId = v.videoId
             let audioUrl = null
-            const apis = [
-                `https://api.nexylight.xyz/dl/ytmp3?id=${v.videoId}&key=nexy-9ccbbb`,
-                `https://api.brayanofc.shop/dl/youtubeplay?query=${encodeURIComponent(v.url)}&key=api-gmnch`
+            let calidad = '128kbps' 
+
+            // 🚀 --- ARSENAL DE APIS ACTUALIZADO (MÁXIMA ESTABILIDAD) ---
+            const apiSources = [
+                // Nueva API v2 (ytmp3v2)
+                { url: `https://api.brayanofc.shop/dl/ytmp3v2?url=${encodeURIComponent(url)}&key=api-gmnch`, path: (d) => d.data?.dl },
+                // Nueva API v2 (youtubev2) - Buscando el formato Mp3
+                { url: `https://api.brayanofc.shop/dl/youtubev2?url=${encodeURIComponent(url)}&key=api-gmnch`, path: (d) => d.results?.formats.find(f => f.label === 'Download Mp3')?.url },
+                // Nexylight (Muy estable)
+                { url: `https://api.nexylight.xyz/dl/ytmp3?id=${videoId}&key=nexy-9ccbbb`, path: (d) => d.download?.url },
+                // API v1 (ytmp3)
+                { url: `https://api.brayanofc.shop/dl/ytmp3?url=${encodeURIComponent(url)}&key=api-gmnch`, path: (d) => d.result?.downloadUrl },
+                // Backups adicionales
+                { url: `https://api.boxmine.xyz/down/ytaudio?url=${encodeURIComponent(url)}`, path: (d) => d.resultado?.url_dl },
+                { url: `https://api.vreden.xyz/api/v1/download/youtube/audio?url=${encodeURIComponent(url)}`, path: (d) => d.result?.download?.url }
             ]
 
-            for (const api of apis) {
+            for (const source of apiSources) {
                 try {
-                    const res = await axios.get(api, { timeout: 4000 }) // Bajamos a 4 seg para saltar rápido
-                    audioUrl = res.data?.download?.url || res.data?.data?.dl || res.data?.resultado?.url_dl
-                    if (audioUrl) break 
+                    const res = await axios.get(source.url, { timeout: 4000 })
+                    const link = source.path(res.data)
+                    if (link) {
+                        audioUrl = link
+                        if (res.data?.data?.quality) calidad = res.data.data.quality
+                        break 
+                    }
                 } catch { continue }
             }
 
             if (!audioUrl) throw new Error()
 
-            // 📤 3. Envío directo (Sin distracciones)
+            const formatViews = (n) => {
+                if (n >= 1e9) return (n / 1e9).toFixed(1) + 'B'
+                if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M'
+                if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K'
+                return n.toLocaleString()
+            }
+
+            // 📤 ENVIAR INFO (TU FORMATO ORIGINAL)
+            const textoPlay = `✧ ‧₊˚ *YOUTUBE AUDIO* ୧ֹ˖ ⑅ ࣪⊹
+⊹₊ ˚‧︵‿₊୨୧₊‿︵‧ ˚ ₊⊹
+✰ Título: ${v.title}
+   › ✦ \`Calidad\`: *${calidad}*
+   › ⏱ \`Duración\`: *${v.timestamp || v.duration}*
+   › ꕤ \`Vistas\`: *${formatViews(v.views)}*
+   › ❖ \`Link\`: *${v.url}*
+
+> Powered by 𝓜𝓲𝓼𝓪 ♡`.trim()
+
             await conn.sendMessage(chat, { 
-                text: `✧ ‧₊˚ *${v.title}*\n> ✿ Duración: *${v.timestamp}*\n\n> Powered by 𝓜𝓲𝓼𝓪 ♡`.trim(),
+                text: textoPlay,
                 contextInfo: {
                     externalAdReply: {
                         title: v.title,
-                        body: '𝓜𝓲𝓼𝓪 𝘿𝙤纵𝙡𝙤𝙖𝙙𝙚𝙧 🖤',
+                        body: '𝓜𝓲𝓼𝓪 𝘿𝙤𝙬𝙣𝙡𝙤𝙖𝙙𝙚𝙧 🖤',
                         thumbnailUrl: v.image,
-                        sourceUrl: v.url,
+                        sourceUrl: url,
                         mediaType: 1,
                         renderLargerThumbnail: true
                     }
                 }
             }, { quoted: m })
 
+            // 🎵 Envío directo del audio
             return await conn.sendMessage(chat, { 
                 audio: { url: audioUrl },
                 mimetype: 'audio/mpeg',
@@ -67,7 +98,7 @@ const playCommand = {
             }, { quoted: m })
 
         } catch (err) {
-            return conn.sendMessage(chat, { text: '> ✐ Error rápido al procesar.' }, { quoted: m })
+            return conn.sendMessage(chat, { text: '> ✐ No pude descargar el audio con ninguna fuente. Reintenta más tarde.' }, { quoted: m })
         }
     }
 }
