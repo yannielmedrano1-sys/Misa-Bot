@@ -1,3 +1,7 @@
+/* Código creado por Yanniel y ABRAHAN-M
+por favor y no quites los créditos.
+https://github.com/yannielmedrano1-sys
+*/
 import axios from 'axios';
 
 // Memoria temporal de sesiones (se mantiene en RAM)
