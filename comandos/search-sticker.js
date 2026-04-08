@@ -2,7 +2,7 @@ import fetch from 'node-fetch'
 
 const stickerlyMisaFinal = {
     name: 'stickerly',
-    alias: ['sly', 'pack', 'stickerpack'],
+    alias: ['sly', 'pack'],
     category: 'stickers',
     noPrefix: true,
 
@@ -16,29 +16,29 @@ const stickerlyMisaFinal = {
         try {
             await conn.sendMessage(chat, { react: { text: '📦', key: m.key } })
 
-            // 1. Buscamos el pack con Brayan
+            // 1. Buscamos el pack para sacar la URL y el ID
             const searchRes = await fetch(`https://api.brayanofc.shop/stickerly/search?query=${encodeURIComponent(text)}&key=api-gmnch`)
             const searchJson = await searchRes.json()
 
             if (!searchJson.status || !searchJson.resultados?.[0]) {
-                return conn.sendMessage(chat, { text: '> ✐  *Error:* No encontré ese paquete en Stickerly. ✧' }, { quoted: m })
+                return conn.sendMessage(chat, { text: '> ✐  *Error:* No encontré ese paquete. ✧' }, { quoted: m })
             }
 
-            const packUrl = searchJson.resultados[0].url
-            const packId = packUrl.split('/s/')[1]
+            const packData = searchJson.resultados[0]
+            const packId = packData.url.split('/s/')[1] // Sacamos el ID (ej: E4LTQK)
 
-            // 2. Detalles con la estructura 'detalles'
-            const detailRes = await fetch(`https://api.brayanofc.shop/stickerly/detail?url=${encodeURIComponent(packUrl)}&key=api-gmnch`)
+            // 2. Obtenemos los detalles con el JSON que me pasaste (usando 'detalles')
+            const detailRes = await fetch(`https://api.brayanofc.shop/stickerly/detail?url=${encodeURIComponent(packData.url)}&key=api-gmnch`)
             const detailJson = await detailRes.json()
 
             if (!detailJson.status || !detailJson.detalles) {
-                return conn.sendMessage(chat, { text: '> ✐  *Error:* 𝓜𝓲𝓼𝓪 no pudo obtener los detalles. ✧' }, { quoted: m })
+                return conn.sendMessage(chat, { text: '> ✐  *Error:* 𝓜𝓲𝓼𝓪 no pudo conectar con el servidor. ✧' }, { quoted: m })
             }
 
             const d = detailJson.detalles
+            // Link directo al archivo oficial de Sticker.ly
             const fileUrl = `https://stickerly.pstatic.net/sticker_pack/${packId}/pack.exstickerpack`
 
-            // DISEÑO 𝓜𝓲𝓼𝓪 𝓑𝓸𝓽
             const caption = `
 ʚ 𝓜𝓲𝓼𝓪 𝓑𝓸𝓽 𝓢𝓽𝓲𝓬𝓴𝓮𝓻𝓼 ɞ
 ⊹₊ ˚‧︵‿₊୨୧₊‿︵‧ ˚ ₊⊹
@@ -52,13 +52,13 @@ const stickerlyMisaFinal = {
 
 > Powered by 𝓜𝓲𝓼𝓪 ♡`.trim()
 
-            // Portada
+            // Enviamos la portada
             await conn.sendMessage(chat, { 
                 image: { url: d.thumbnailUrl }, 
                 caption: caption 
             }, { quoted: m })
 
-            // 3. ENVIÓ DEL PAQUETE (Con el símbolo > corregido)
+            // 3. Enviamos el DOCUMENTO con el formato exacto que pediste
             await conn.sendMessage(chat, {
                 document: { url: fileUrl },
                 mimetype: 'application/octet-stream',
@@ -70,7 +70,7 @@ const stickerlyMisaFinal = {
 
         } catch (e) {
             console.error("ERROR 𝓜𝓲𝓼𝓪:", e)
-            await conn.sendMessage(chat, { text: '> ✐  *Error:* Algo falló en el servidor de 𝓜𝓲𝓼𝓪. ✧' }, { quoted: m })
+            await conn.sendMessage(chat, { text: '> ✐  *Error:* El servidor de 𝓜𝓲𝓼𝓪 está saturado. ✧' }, { quoted: m })
         }
     }
 }
