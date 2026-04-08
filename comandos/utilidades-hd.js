@@ -1,8 +1,8 @@
 import { downloadMediaMessage } from '@whiskeysockets/baileys'
-import fetch from 'node-fetch'
+import axios from 'axios'
 import pino from 'pino'
 
-const hdMisaFinalBossFixed = {
+const hdMisaBrayanAPI = {
     name: 'hd',
     alias: ['remini', 'enhance', 'mejorar'],
     category: 'tools',
@@ -12,82 +12,72 @@ const hdMisaFinalBossFixed = {
         const chat = m.key.remoteJid || m.chat
         
         try {
-            // 1. DETECCIÓN DEL CONTENIDO (PIXEL COMPATIBLE)
-            // Buscamos el mensaje citado desde la raíz por si m.quoted viene vacío
+            // 1. OBTENER EL CONTENIDO (FOTO O STICKER)
             const quotedMsg = m.quoted ? m.quoted : (m.message?.extendedTextMessage?.contextInfo?.quotedMessage || null)
-            
-            // Si no hay citado, usamos el mensaje actual (por si envió la foto con el comando en el caption)
             let target = quotedMsg ? (quotedMsg.message ? quotedMsg.message : quotedMsg) : m.message
             
-            // Extraemos el tipo y el mimetype
             const type = Object.keys(target)[0]
             const mime = (target[type]?.mimetype || target.mimetype || '')
 
             if (!/image|webp/.test(mime)) {
                 return conn.sendMessage(chat, { 
-                    text: `> ✐  *Misa no ve ninguna imagen aquí.* ✧\n> *Responde a una foto o envía una con el comando.*` 
+                    text: `> ✐  *Misa necesita una imagen para mejorar.* ✧\n> *Responde a una foto o sticker.*` 
                 }, { quoted: m })
             }
 
             await conn.sendMessage(chat, { react: { text: '⏳', key: m.key } })
 
-            // 2. DESCARGA BLINDADA
+            // 2. DESCARGA DEL BUFFER
             let buffer = await downloadMediaMessage(
                 { message: target },
                 'buffer',
                 {},
-                { 
-                    logger: pino({ level: 'silent' }), 
-                    reuploadRequest: conn.updateMediaMessage 
-                }
+                { logger: pino({ level: 'silent' }), reuploadRequest: conn.updateMediaMessage }
             )
 
-            if (!buffer) throw new Error("No se pudo obtener el buffer")
+            if (!buffer) throw new Error("No se pudo obtener el archivo.")
 
-            // 3. API DE MEJORA (REMINI)
-            const imageData = buffer.toString('base64')
-            const response = await fetch('https://us-central1-vector-ink.cloudfunctions.net/upscaleImage', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ data: { image: imageData } })
+            // 3. ENVIAR A LA API DE BRAYAN (Upscale)
+            // Usamos FormData para enviar el buffer directamente
+            const FormData = (await import('form-data')).default
+            const form = new FormData()
+            form.append('image', buffer, { filename: 'remini.jpg' })
+
+            const res = await axios.post('https://api.brayanofc.shop/tools/upscale', form, {
+                headers: { 
+                    ...form.getHeaders(),
+                    'Accept': 'application/json'
+                },
+                responseType: 'arraybuffer' // Recibimos la imagen mejorada directamente en buffer
             })
 
-            if (!response.ok) throw new Error("Fallo en la conexión con la API")
+            if (!res.data) throw new Error("La API no devolvió datos.")
 
-            const resJson = await response.json()
-            // La API devuelve un string JSON dentro de result, hay que parsearlo
-            const result = JSON.parse(resJson.result || '{}')
-            const base64Image = result?.image?.b64_json
-
-            if (!base64Image) throw new Error("La API no devolvió una imagen")
-            
-            const outputBuffer = Buffer.from(base64Image, 'base64')
-
-            // 4. DISEÑO MISA
+            // 4. DISEÑO FINAL MISA
             const caption = `
 ʚ 𝐌𝐢𝐬𝐚 𝐇𝐃 𝐄𝐧𝐡𝐚𝐧𝐜𝐞 ɞ
 ⊹₊ ˚‧︵‿₊୨୧₊‿︵‧ ˚ ₊⊹
 
 ✰ *Estado:* ¡Imagen reconstruida!
-   > ✿ *Calidad:* Remini High-Res
+   > ✿ *Calidad:* 4K Ultra High-Res
 
 > Powered by 𝓜𝓲𝓼𝓪 ♡`.trim()
 
             await conn.sendMessage(chat, { 
-                image: outputBuffer, 
+                image: Buffer.from(res.data), 
                 caption: caption 
             }, { quoted: m })
             
             await conn.sendMessage(chat, { react: { text: '✅', key: m.key } })
 
         } catch (e) {
-            console.error("ERROR CRÍTICO HD MISA:", e)
+            console.error("ERROR HD BRAYAN API:", e)
             await conn.sendMessage(chat, { react: { text: '❌', key: m.key } })
             await conn.sendMessage(chat, { 
-                text: `> ✐  *Error de Procesamiento.* ✧\n> *Nota:* La API puede estar saturada. Intenta de nuevo en unos segundos.` 
+                text: `> ✐  *Error:* No pude mejorar la imagen.\n> *Nota:* Intenta con una imagen que no sea tan pesada.` 
             }, { quoted: m })
         }
     }
 }
 
-export default hdMisaFinalBossFixed
+export default hdMisaBrayanAPI
