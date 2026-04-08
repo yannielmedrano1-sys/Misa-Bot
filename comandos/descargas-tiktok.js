@@ -1,3 +1,4 @@
+
 import fetch from 'node-fetch'
 
 const tiktokCommand = {
@@ -14,11 +15,10 @@ const tiktokCommand = {
 
         if (!text) {
             return conn.sendMessage(chat, {
-                text: `🖤 *¿Qué quieres buscar o descargar?*\n\nEjemplo:\n\`${command} gatos\`\n\`${command} https://tiktok.com/... \``
+                text: `› ✐  *¿Qué quieres buscar o descargar?*\n\n*Ejemplo:*\n\`${command} gatos\`\n\`${command} https://tiktok.com/... \``
             }, { quoted: m })
         }
 
-        // 🔥 DETECTAR LINK REAL
         const isUrl = text.includes('tiktok.com')
 
         const endpoint = isUrl
@@ -31,39 +31,48 @@ const tiktokCommand = {
             const res = await fetch(endpoint)
             const json = await res.json()
 
-            if (!json.status) {
+            if (!json.status || !json.data) {
                 return conn.sendMessage(chat, {
-                    text: '> ✐ No se encontró contenido.'
+                    text: '› ✐  *Error:* No se encontró contenido multimedia.'
                 }, { quoted: m })
             }
 
-            // 👉 SI ES LINK
-            if (isUrl) {
-                const v = json.data
-                const videoUrl = Array.isArray(v.dl) ? v.dl[0] : v.dl
-
-                await conn.sendMessage(chat, {
-                    video: { url: videoUrl },
-                    caption: `🎵 ${v.title || 'TikTok'}`
-                }, { quoted: m })
-
-            } else {
-                // 👉 SI ES BÚSQUEDA
-                const v = json.data[0]
-
-                await conn.sendMessage(chat, {
-                    video: { url: v.dl },
-                    caption: `🎵 ${v.title || 'TikTok'}`
-                }, { quoted: m })
+            const v = isUrl ? json.data : json.data[0]
+            
+            const formatNr = (num) => {
+                if (!num) return '0'
+                return new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 }).format(num)
             }
+
+            const caption = `
+*TIKKTOK DOWNLOADER*
+
+*Autor:* ${v.author?.nickname || v.nickname || 'Anónimo'}
+*Título:* ${v.title || 'Sin descripción'}
+
+*Estadísticas:*
+*Likes:* ${formatNr(v.stats?.likeCount || v.like)}
+*Comentarios:* ${formatNr(v.stats?.commentCount || v.comment)}
+*Compartidos:* ${formatNr(v.stats?.shareCount || v.share)}
+*Vistas:* ${formatNr(v.stats?.playCount || v.views)}
+
+> 𝓜𝓲𝓼𝓪 𝘽𝙊𝙏 🖤`.trim()
+
+            const videoUrl = isUrl 
+                ? (Array.isArray(v.dl) ? v.dl[0] : v.dl)
+                : v.dl
+
+            await conn.sendMessage(chat, {
+                video: { url: videoUrl },
+                caption: caption
+            }, { quoted: m })
 
             await conn.sendMessage(chat, { react: { text: '✅', key: m.key } })
 
         } catch (e) {
-            console.error(e)
-
+            console.error("TT ERROR:", e)
             await conn.sendMessage(chat, {
-                text: '❌ Error al procesar TikTok'
+                text: '› ✐  *Error:* No se pudo procesar el TikTok.'
             }, { quoted: m })
         }
     }
