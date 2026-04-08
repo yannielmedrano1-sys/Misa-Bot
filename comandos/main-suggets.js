@@ -1,51 +1,48 @@
 /**
  * ꕤ ━━━━━━━━━━ SUGGEST SYSTEM - 𝓜𝓲𝓼𝓪 𝓑𝓸𝓽 ━━━━━━━━━━ ꕤ
- * Creado para Yanniel - Sky Ultra Panel
  */
 
-const suggestMisaPremium = {
-    command: ['sug', 'suggest', 'sugerencia'],
+const suggestMisaPixel = {
+    name: 'sug',
+    alias: ['suggest', 'sugerencia'],
     category: 'info',
-    noPrefix: true,
+    noPrefix: true, // Esto permite que funcione escribiendo solo "sug"
 
     run: async (conn, m, { text, command }) => {
         const chat = m.key.remoteJid || m.chat
-        const sender = m.sender || m.key.participant
+        const sender = m.sender || m.key.participant || m.key.remoteJid
         
-        // --- VALIDACIÓN DE TEXTO ---
-        if (!text || text.length < 15) {
+        // 1. Verificamos si hay texto (usando el 'text' que viene del handler)
+        if (!text || text.length < 5) {
             return conn.sendMessage(chat, { 
-                text: `> ✐  *Light-kun, tu sugerencia es muy breve.* ✧\n> *Uso:* .sug [explicación detallada de tu idea]` 
+                text: `> ✐  *Misa necesita más detalles.* ✧\n> *Uso:* \`${command} [tu idea aquí]\`` 
             }, { quoted: m })
         }
 
         try {
             await conn.sendMessage(chat, { react: { text: '💡', key: m.key } })
 
-            // --- GENERADOR DE ID ÚNICO ---
-            const sugID = Math.random().toString(36).substring(2, 7).toUpperCase()
+            // Generar ID de ticket
+            const sugID = Math.random().toString(36).substring(2, 6).toUpperCase()
+            const user = m.pushName || 'Usuario'
             
-            // --- DATOS DEL EMISOR ---
-            const user = m.pushName || 'Anónimo'
+            // Foto de perfil
             const pp = await conn.profilePictureUrl(sender, 'image').catch(() => 'https://i.pinimg.com/736x/30/6d/5d/306d5d75b0e4be7706e4fe784507154b.jpg')
             
             const reportMsg = `
-✧ ‧₊˚ 𝓢𝓾𝓰𝓮𝓻𝓮𝓷𝓬𝓲𝓪 𝓡𝓮𝓬𝓲𝓫𝓲𝓭𝓪 ୧ֹ˖ ⑅ ࣪⊹
+✧ ‧₊˚ 𝓢𝓾𝓰𝓮𝓻𝓮𝓷𝓬𝓲𝓪 # ${sugID} ୧ֹ˖ ⑅ ࣪⊹
 ⊹₊ ˚‧︵‿₊୨୧₊‿︵‧ ˚ ₊⊹
 
-🆔 *Ticket:* #${sugID}
-👤 *Usuario:* ${user}
+👤 *De:* ${user}
 📱 *Número:* wa.me/${sender.split('@')[0]}
 
 📝 *PROPUESTA:*
-"${text.trim()}"
+> ${text.trim()}
 
-✰ *Estado:* 🟢 Pendiente de revisión
-⊹₊ ˚‧︵‿₊୨୧₊‿︵‧ ˚ ₊⊹
-> *Misa-Bot: Feedback System*`.trim()
+✰ *Estado:* 🟢 Enviado al Staff
+> Powered by 𝓜𝓲𝓼𝓪 ♡`.trim()
 
-            // --- LISTA DE STAFF (Owners) ---
-            // Pon aquí los JID de los que deben recibir las sugerencias
+            // LISTA DE DUEÑOS (Asegúrate que estos números sean correctos)
             const staff = [
                 '18492797341@s.whatsapp.net', 
                 '18297677527@s.whatsapp.net'
@@ -56,32 +53,28 @@ const suggestMisaPremium = {
                     text: reportMsg,
                     contextInfo: {
                         externalAdReply: {
-                            title: `💡 NUEVA IDEA: ${sugID}`,
-                            body: `Enviada por: ${user}`,
+                            title: `💡 IDEA DE: ${user}`,
+                            body: `Ticket: #${sugID}`,
                             thumbnailUrl: pp,
                             sourceUrl: 'https://github.com/yannielmedrano1-sys/-sky',
-                            mediaType: 1,
-                            renderLargerThumbnail: false
+                            mediaType: 1
                         }
                     }
-                })
+                }).catch(e => console.log(`Error enviando a owner: ${e}`))
             }
 
-            // --- RESPUESTA AL USUARIO ---
-            const confirmMsg = `
-> ✐  *¡Sugerencia enviada!* ✧
-> Tu ticket es el **#${sugID}**. El Staff lo revisará pronto.
-
-*Gracias por ayudar a que Misa sea más perfecta.*`.trim()
-
-            await conn.sendMessage(chat, { text: confirmMsg }, { quoted: m })
+            // Confirmación al chat
+            await conn.sendMessage(chat, { 
+                text: `> ✐  *¡Sugerencia enviada!* ✧\n> Gracias, ${user}. Tu ticket es el **#${sugID}**.` 
+            }, { quoted: m })
+            
             await conn.sendMessage(chat, { react: { text: '✅', key: m.key } })
 
         } catch (err) {
             console.error("ERROR SUGGEST:", err)
-            await conn.sendMessage(chat, { text: `> ✐  *Error:* No se pudo entregar la sugerencia.` }, { quoted: m })
+            await conn.sendMessage(chat, { text: `> ✐  *Error:* El Staff no pudo recibir tu mensaje.` }, { quoted: m })
         }
     }
 }
 
-export default suggestMisaPremium
+export default suggestMisaPixel
