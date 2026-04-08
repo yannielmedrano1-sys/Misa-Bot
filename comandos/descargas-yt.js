@@ -1,138 +1,116 @@
-/* Código creado por Yanniel, y optimizado By ABRAHAN-M (el brother mio <3)
-por favor y no quites los créditos.
-https://github.com/yannielmedrano1-sys
-*/
-import axios from 'axios'
-import { config } from '../config.js'
+/**
+ * ꕤ ━━━━━━━━━━ PLAY MULTI-API (yt-search) - 𝓜𝓲𝓼𝓪 ━━━━━━━━━━ ꕤ
+ * Créditos: Yanniel & ABRAHAN-M
+ */
 
-const playCommand = {
+import yts from 'yt-search'
+import fetch from 'node-fetch'
+
+// Función para obtener buffer de imagen/audio
+async function getBuffer(url) {
+    const res = await fetch(url)
+    return res.buffer()
+}
+
+const playMultiApi = {
     name: 'play',
-    alias: ['audio', 'music', 'ytmp3'],
+    alias: ['mp3', 'ytmp3', 'ytaudio', 'playaudio'],
     category: 'downloader',
-    isOwner: false,
     noPrefix: true,
-    isAdmin: false,
-    isGroup: false,
 
-    run: async (conn, m, { text, usedPrefix, command }) => {
-        const chat = m.key.remoteJid
-        const prefijo = usedPrefix || ''
-
-        if (!text) {
-            return conn.sendMessage(chat, { 
-                text: `🖤 *¿Qué quieres escuchar?*\n\nEjemplo: \`${prefijo + command} Media Hora\`` 
-            }, { quoted: m })
-        }
+    run: async (conn, m, { text, args, command, usedPrefix }) => {
+        const chat = m.chat
+        if (!args[0]) return conn.sendMessage(chat, { text: `> ✐ *Por favor, menciona el nombre o URL del video.*` }, { quoted: m })
 
         try {
-            await conn.sendMessage(chat, { react: { text: '⏳', key: m.key } })
+            await conn.sendMessage(chat, { react: { text: '🔍', key: m.key } })
 
-            // 🔍 Buscar video
-            const { data: searchData } = await axios.get(
-                `https://api.brayanofc.shop/dl/youtubeplay?query=${encodeURIComponent(text)}&key=api-gmnch`
-            )
+            // 1. 🔎 BÚSQUEDA CON YT-SEARCH
+            const search = await yts(text)
+            const video = search.videos[0]
+            if (!video) return conn.sendMessage(chat, { text: `> ✐ *No encontré resultados para tu búsqueda.*` }, { quoted: m })
 
-            const v = searchData.data
-            const id = v.videoId
+            const url = video.url
+            const title = video.title
+            const vistas = video.views.toLocaleString()
+            const duracion = video.timestamp
+            const autor = video.author.name
+            const imagen = video.image
 
-            let audioUrl = v.dl
-            let vistasReales = v.views
-
-            // ⚡ API rápida con timeout
-            try {
-                const { data: resNexy } = await axios.get(
-                    `https://api.nexylight.xyz/dl/ytmp3?id=${id}&key=nexy-9ccbbb`,
-                    { timeout: 5000 }
-                )
-
-                if (resNexy.status) {
-                    audioUrl = resNexy.download.url
-                    vistasReales = resNexy.data.views
-                }
-            } catch {}
-
-            // ⚡ ANIMACIÓN (MISMA ESTÉTICA PERO LIGERA)
-            const { key } = await conn.sendMessage(chat, { 
-                text: '📥 *Descargando:* `10%` █▒▒▒▒▒▒▒▒▒' 
-            })
-
-            const steps = [30, 60, 100]
-
-            const getBar = (p) => {
-                const filled = Math.floor(p / 10)
-                return '█'.repeat(filled) + '▒'.repeat(10 - filled)
-            }
-
-            for (let p of steps) {
-                await new Promise(r => setTimeout(r, 120))
-                await conn.sendMessage(chat, {
-                    text: `📥 *Descargando:* \`${p}%\` ${getBar(p)}`,
-                    edit: key
-                })
-            }
-
-            // 🧠 FORMATEO (igual pero optimizado)
-            const formatViews = (views) => {
-                if (!views) return "0"
-                let str = views.toString().toLowerCase()
-
-                if (/[kmb]/.test(str)) return str.replace(/[^0-9.kmb]/g, '').toUpperCase()
-
-                let n = parseInt(str.replace(/\D/g, '')) || 0
-
-                if (n >= 1e9) return (n / 1e9).toFixed(1) + 'B'
-                if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M'
-                if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K'
-
-                return n.toLocaleString()
-            }
-
-            await conn.sendMessage(chat, { react: { text: '✅', key: m.key } })
-
-            const textoPlay = `✧ ‧₊˚ *YOUTUBE AUDIO* ୧ֹ˖ ⑅ ࣪⊹
+            // 2. 📥 MENSAJE DE INFO (ESTILO MISA)
+            const infoMsg = `✧ ‧₊˚ *YOUTUBE PLAY* ୧ֹ˖ ⑅ ࣪⊹
 ⊹₊ ˚‧︵‿₊୨୧₊‿︵‧ ˚ ₊⊹
-✰ Título: ${v.title || "?"}
-   › ✿ \`Canal\`: *${v.author?.name || "YouTube"}*
-   › ✦ \`Duración\`: *${v.duration || "??:??"}*
-   › ꕤ \`Vistas\`: *${formatViews(vistasReales)}*
-   › ❖ \`Link\`: *${v.url}*
+✰ Título: ${title}
+   › ✿ \`Canal\`: *${autor}*
+   › ✦ \`Duración\`: *${duracion}*
+   › ꕤ \`Vistas\`: *${vistas}*
+   › ❖ \`Link\`: *${url}*
 
+> *Descargando audio, por favor espera...*
 > Powered by 𝓜𝓲𝓼𝓪 ♡`.trim()
 
             await conn.sendMessage(chat, { 
-                text: textoPlay,
+                image: { url: imagen }, 
+                caption: infoMsg,
                 contextInfo: {
                     externalAdReply: {
-                        title: v.title,
-                        body: '𝓜𝓲𝓼𝓪  𝘿𝙤𝙬𝙣𝙡𝙤𝙖𝙙𝙚𝙧 🖤',
-                        thumbnailUrl: v.image || v.thumbnail,
-                        sourceUrl: v.url,
+                        title: title,
+                        body: '𝓜𝓲𝓼𝓪 𝘿𝙤纵𝙡𝙤𝙖𝙙𝙚𝙧 🖤',
+                        thumbnailUrl: imagen,
+                        sourceUrl: url,
                         mediaType: 1,
-                        renderLargerThumbnail: true,
                         showAdAttribution: false
                     }
                 }
             }, { quoted: m })
 
-            // 🚀 ENVÍO RÁPIDO
+            // 3. 🚀 INTENTAR DESCARGA CON MULTI-APIS
+            await conn.sendMessage(chat, { react: { text: '📥', key: m.key } })
+            const audio = await getAudioFromApis(url)
+
+            if (!audio || !audio.url) {
+                return conn.sendMessage(chat, { text: `> ✐ *Error:* Todas las APIs fallaron. Intenta más tarde.` }, { quoted: m })
+            }
+
+            // 4. 📤 ENVÍO DEL AUDIO
             await conn.sendMessage(chat, { 
-                audio: { url: audioUrl },
-                mimetype: 'audio/mpeg',
-                fileName: `${v.title}.mp3`
+                audio: { url: audio.url }, 
+                fileName: `${title}.mp3`, 
+                mimetype: 'audio/mpeg' 
             }, { quoted: m })
 
-            await conn.sendMessage(chat, { 
-                text: '🖤 *Audio enviado con éxito :)*', 
-                edit: key 
-            })
+            await conn.sendMessage(chat, { react: { text: '✅', key: m.key } })
 
-        } catch (err) {
-            console.error(err)
-            await conn.sendMessage(chat, { 
-                text: '> ✐ no se pudo obtener ese audio.' 
-            }, { quoted: m })
+        } catch (e) {
+            console.error(e)
+            conn.sendMessage(chat, { text: `> ✐ *Ocurrió un error:* ${e.message}` }, { quoted: m })
         }
     }
 }
 
-export default playCommand
+// --- 🛠️ MOTOR DE DESCARGA MULTI-API ---
+async function getAudioFromApis(url) {
+    const apis = [
+        { api: 'Axi', endpoint: `https://api.boxmine.xyz/down/ytaudio?url=${encodeURIComponent(url)}`, extractor: res => res?.resultado?.url_dl },    
+        { api: 'Ootaizumi', endpoint: `https://api.ootaizumi.xyz/downloader/youtube/play?query=${encodeURIComponent(url)}`, extractor: res => res.result?.download },
+        { api: 'Vreden', endpoint: `https://api.vreden.xyz/api/v1/download/youtube/audio?url=${encodeURIComponent(url)}&quality=256`, extractor: res => res.result?.download?.url },
+        { api: 'Nekolabs', endpoint: `https://api.nekolabs.xyz/downloader/youtube/v1?url=${encodeURIComponent(url)}&format=mp3`, extractor: res => res.result?.downloadUrl }
+    ]
+
+    for (const { endpoint, extractor } of apis) {
+        try {
+            const controller = new AbortController()
+            const timeout = setTimeout(() => controller.abort(), 12000) // 12 segundos por API
+            const res = await fetch(endpoint, { signal: controller.signal }).then(r => r.json())
+            clearTimeout(timeout)
+            
+            const link = extractor(res)
+            if (link) return { url: link }
+        } catch (e) {
+            continue // Si una falla, salta a la siguiente
+        }
+    }
+    return null
+}
+
+export default playMultiApi
