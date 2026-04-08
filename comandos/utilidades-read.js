@@ -1,79 +1,85 @@
-import { downloadContentFromMessage, extractMessageContent } from '@whiskeysockets/baileys'
+import { downloadMediaMessage } from '@whiskeysockets/baileys'
+import P from 'pino'
 
-const readViewOnceMisa = {
-    name: 'readviewonce',
-    alias: ['read', 'readvo', 'revelar'],
+const readMisa = {
+    name: 'read',
+    alias: ['ver', 'readvo', 'revelar'],
     category: 'tools',
     noPrefix: true,
 
     run: async (conn, m, { text, command }) => {
         const chat = m.key.remoteJid
-        const quoted = m.quoted ? m.quoted : m
+        let quotedMsg = m.message?.extendedTextMessage?.contextInfo?.quotedMessage
 
-        // Verificamos si el mensaje citado es ViewOnce
-        const isViewOnce = quoted.msg?.viewOnce || quoted.viewOnce || false
-        if (!isViewOnce) return conn.sendMessage(chat, { 
-            text: `> ✐  *Por favor, responde a un mensaje de "Ver una sola vez" para revelar su contenido.* ✧` 
+        if (!quotedMsg) return conn.sendMessage(chat, { 
+            text: `> ✐  *Debes responder a un mensaje de una sola vez.* ✧` 
+        }, { quoted: m })
+
+        // Filtramos el contenido real del ViewOnce
+        let content = quotedMsg.viewOnceMessageV2?.message
+            || quotedMsg.viewOnceMessage?.message
+            || quotedMsg.viewOnceMessageV2Extension?.message
+            || quotedMsg
+
+        // Verificamos si realmente es un ViewOnce
+        let isVo = Object.values(content).some(v =>
+            v?.viewOnce || quotedMsg.viewOnceMessageV2 || quotedMsg.viewOnceMessage
+        )
+
+        if (!isVo) return conn.sendMessage(chat, { 
+            text: `> ✐  *El mensaje citado no es de una sola vez.* ✧` 
         }, { quoted: m })
 
         try {
-            await conn.sendMessage(chat, { react: { text: '🕒', key: m.key } })
+            await conn.sendMessage(chat, { react: { text: '⏳', key: m.key } })
 
-            const content = extractMessageContent(quoted.message || quoted)
-            const messageType = Object.keys(content)[0]
-            const mediaMessage = content[messageType]
+            let type = Object.keys(content)[0]
+            let media = content[type]
 
-            const stream = await downloadContentFromMessage(
-                mediaMessage,
-                messageType.replace('Message', '').toLowerCase()
+            // Descarga segura con el logger en silent para no llenar la consola de Sky Ultra
+            let buffer = await downloadMediaMessage(
+                { message: content },
+                'buffer',
+                {},
+                { logger: P({ level: 'silent' }), reuploadRequest: conn.updateMediaMessage }
             )
 
-            let buffer = Buffer.from([])
-            for await (const chunk of stream) {
-                buffer = Buffer.concat([buffer, chunk])
-            }
+            if (!buffer) throw new Error('No se pudo generar el buffer')
 
-            // DISEÑO MISA CON LETRAS LEGIBLES
             const caption = `
 ʚ 𝐌𝐢𝐬𝐚 𝐕𝐢𝐞𝐰𝐎𝐧𝐜𝐞 𝐑𝐞𝐯𝐞𝐚𝐥 ɞ
 ⊹₊ ˚‧︵‿₊୨୧₊‿︵‧ ˚ ₊⊹
 
-✰ *Tipo:* ${messageType.replace('Message', '')}
-   > ✿ *Estado:* ¡Contenido revelado!
+✰ *Tipo:* ${type.replace('Message', '')}
+   > ✿ *Estado:* Contenido revelado con éxito.
 
-> 🎀 *Nota:* El contenido ha sido procesado correctamente.
+> 🎀 *Nota:* Ya puedes ver el archivo sin restricciones.
 
 > Powered by 𝓜𝓲𝓼𝓪 ♡`.trim()
 
-            if (/video/i.test(messageType)) {
-                await conn.sendMessage(chat, { 
-                    video: buffer, 
-                    caption: caption, 
-                    mimetype: 'video/mp4' 
-                }, { quoted: m })
-            } else if (/image/i.test(messageType)) {
-                await conn.sendMessage(chat, { 
-                    image: buffer, 
-                    caption: caption 
-                }, { quoted: m })
-            } else if (/audio/i.test(messageType)) {
-                await conn.sendMessage(chat, { 
-                    audio: buffer, 
-                    mimetype: 'audio/ogg; codecs=opus', 
-                    ptt: mediaMessage.ptt || false 
-                }, { quoted: m })
+            // Manejo de envío por tipo de archivo
+            if (type === 'videoMessage') {
+                await conn.sendMessage(chat, { video: buffer, caption, mimetype: 'video/mp4' }, { quoted: m })
+            } else if (type === 'imageMessage') {
+                await conn.sendMessage(chat, { image: buffer, caption }, { quoted: m })
+            } else if (type === 'audioMessage') {
+                // Si es audio, enviamos el archivo y luego el mensaje de texto con el caption
+                await conn.sendMessage(chat, { audio: buffer, mimetype: 'audio/ogg; codecs=opus', ptt: media.ptt || false }, { quoted: m })
+                await conn.sendMessage(chat, { text: caption }, { quoted: m })
+            } else {
+                await conn.sendMessage(chat, { document: buffer, mimetype: 'application/octet-stream', fileName: 'Misa_Reveal.bin' }, { quoted: m })
             }
 
-            await conn.sendMessage(chat, { react: { text: '✅', key: m.key } })
+            await conn.sendMessage(chat, { react: { text: '👁️', key: m.key } })
 
         } catch (e) {
-            console.error("ERROR EN READVO MISA:", e)
-            await conn.sendMessage(chat, { react: { text: '✖️', key: m.key } })
+            console.error("💥 MISA VIEW ONCE ERROR:", e.message)
+            await conn.sendMessage(chat, { react: { text: '❌', key: m.key } })
             await conn.sendMessage(chat, { 
-                text: `> ✐  *Error al intentar revelar el contenido.*\n> [Error: *${e.message}*]` 
+                text: `> ✐  *Error:* No pude procesar este mensaje.\n> [Error: *${e.message}*]` 
             }, { quoted: m })
         }
     }
 }
 
-export default readViewOnceMisa
+export default readMisa
