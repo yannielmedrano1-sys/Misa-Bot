@@ -15,7 +15,7 @@ const tiktokCommand = {
 
         if (!text) {
             return conn.sendMessage(chat, {
-                text: `› ✐  *¿Qué quieres buscar o descargar?*\n\n*Ejemplo:*\n\`${command} gatos\`\n\`${command} https://tiktok.com/... \``
+                text: ` *¿Qué quieres buscar o descargar?*\n\n*Ejemplo:*\n\`${command} gatos\`\n\`${command} https://tiktok.com/... \``
             }, { quoted: m })
         }
 
@@ -70,7 +70,7 @@ const tiktokCommand = {
         } catch (e) {
             console.error("TT ERROR:", e)
             await conn.sendMessage(chat, {
-                text: '› ✐  *Error:* No se pudo procesar el TikTok. ✧'
+                text: '> ✐  *Error:* No se pudo procesar el TikTok. ✧'
             }, { quoted: m })
         }
     }
