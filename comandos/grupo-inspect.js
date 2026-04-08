@@ -1,106 +1,75 @@
-import { getUrlFromDirectPath } from "@whiskeysockets/baileys"
-
-const inspectMisaFinal = {
+const inspectMisaGroups = {
     name: 'inspect',
-    alias: ['inspeccionar', 'revisar'],
+    alias: ['inspeccionar', 'revisar', 'groupinfo'],
     category: 'tools',
     noPrefix: true,
 
-    run: async (conn, m, { text, args, usedPrefix, command }) => {
+    run: async (conn, m, { text, args }) => {
         const chat = m.key.remoteJid
-        if (!text) return conn.sendMessage(chat, { text: `> ✐  *Por favor, ingrese el enlace de un grupo, comunidad o canal.* ✧` }, { quoted: m })
-
-        const channelUrl = text?.match(/(?:https:\/\/)?(?:www\.)?(?:chat\.|wa\.)?whatsapp\.com\/(?:channel\/|joinchat\/)?([0-9A-Za-z]{22,24})/i)?.[1]
+        const groupInvite = text?.match(/(?:https:\/\/)?(?:www\.)?(?:chat\.|wa\.)?whatsapp\.com\/(?:invite\/|joinchat\/)?([0-9A-Za-z]{22,24})/i)?.[1]
         
-        // --- FIX DEL ERROR 'DATA' ---
-        // Usamos encadenamiento opcional (?.) para que si no existe, no explote
+        // Imagen por defecto desde tus ajustes o una fija de Misa
         const settings = global.db?.data?.settings?.[conn.user.id.split(':')[0] + '@s.whatsapp.net']
-        let thumb = settings?.icon || 'https://qu.ax/ZpYm.jpg' // Imagen por defecto si no hay data
+        let thumb = settings?.icon || 'https://qu.ax/ZpYm.jpg' 
         
-        let pp, info, res, inviteInfo, inviteCode
+        try {
+            await conn.sendMessage(chat, { react: { text: '🔍', key: m.key } })
 
-        const formatKey = (key) => {
-            return key.replace(/_/g, ' ')
-                .replace(/\b\w/g, l => l.toUpperCase())
-                .replace("Id", "🆔 ID")
-                .replace("Name", "🏷️ Nombre")
-                .replace("Subscribers", "👥 Suscriptores")
-        }
+            let metadata
+            let pp
 
-        const MetadataGroupInfo = async (res) => {
-            pp = await conn.profilePictureUrl(res.id, 'image').catch(() => null)
-            inviteCode = await conn.groupInviteCode(m.chat).catch(() => null)
+            if (groupInvite) {
+                // CASO 1: Inspeccionar grupo externo por LINK
+                metadata = await conn.groupGetInviteInfo(groupInvite)
+                pp = await conn.profilePictureUrl(metadata.id, 'image').catch(() => null)
+            } else {
+                // CASO 2: Inspeccionar el grupo ACTUAL (donde se usa el comando)
+                if (!m.isGroup) return conn.sendMessage(chat, { text: "> ✐  *Este comando solo funciona en grupos o con un link de invitación.* ✧" }, { quoted: m })
+                metadata = await conn.groupMetadata(chat)
+                pp = await conn.profilePictureUrl(chat, 'image').catch(() => null)
+            }
 
-            return `
+            const caption = `
 ʚ 𝐌𝐢𝐬𝐚 𝐆𝐫𝐨𝐮𝐩 𝐈𝐧𝐬𝐩𝐞𝐜𝐭 ɞ
 ⊹₊ ˚‧︵‿₊୨୧₊‿︵‧ ˚ ₊⊹
 
-🆔 *ID:* ${res.id || "---"}
-👑 *Creado por:* ${res.owner ? `@${res.owner?.split("@")[0]}` : "---"}
-🏷️ *Nombre:* ${res.subject || "---"}
-👥 *Miembros:* ${res.size || "---"}
-🎫 *Link:* ${res.inviteCode || inviteCode || "No disponible"}
+✰ *Nombre:* ${metadata.subject}
+   > 🆔 *ID:* ${metadata.id}
+   > 👑 *Creador:* ${metadata.owner ? `@${metadata.owner.split('@')[0]}` : 'Desconocido'}
+   > 👥 *Miembros:* ${metadata.size || '---'}
+   > 📅 *Creado:* ${metadata.creation ? new Date(metadata.creation * 1000).toLocaleDateString() : '---'}
+
+✨ *Configuración* ✨
+> 📢 *Solo Admins:* ${metadata.announce ? 'Si ✅' : 'No ❌'}
+> ✏️ *Editar Info:* ${metadata.restrict ? 'Solo Admins 🔐' : 'Todos 🔓'}
+> 🤝 *Aprobación:* ${metadata.joinApprovalMode ? 'Activada 🛡️' : 'Desactivada 🔓'}
 
 > Powered by 𝓜𝓲𝓼𝓪 ♡`.trim()
-        }
 
-        try {
-            res = text ? null : await conn.groupMetadata(m.chat)
-            if (res) info = await MetadataGroupInfo(res)
-        } catch {
-            const inviteUrl = text?.match(/(?:https:\/\/)?(?:www\.)?(?:chat\.|wa\.)?whatsapp\.com\/(?:invite\/|joinchat\/)?([0-9A-Za-z]{22,24})/i)?.[1]      
-            if (inviteUrl) {
-                try {
-                    inviteInfo = await conn.groupGetInviteInfo(inviteUrl)
-                    info = `ʚ 𝐌𝐢𝐬𝐚 𝐈𝐧𝐯𝐢𝐭𝐞 𝐈𝐧𝐬𝐩𝐞𝐜𝐭 ɞ\n⊹₊ ˚‧\n🆔 *ID:* ${inviteInfo.id}\n🏷️ *Nombre:* ${inviteInfo.subject}\n👥 *Miembros:* ${inviteInfo.size}\n\n> Powered by 𝓜𝓲𝓼𝓪 ♡`.trim()
-                    pp = await conn.profilePictureUrl(inviteInfo.id, 'image').catch(() => null)
-                } catch (e) {
-                    return conn.sendMessage(chat, { text: '> ✐  *Error:* Enlace no válido o grupo privado.' }, { quoted: m })
-                }
-            }
-        }
-
-        if (info) {
             await conn.sendMessage(chat, { 
-                text: info, 
-                contextInfo: {
-                    externalAdReply: {
-                        title: "𝐌𝐢𝐬𝐚 𝐆𝐫𝐨𝐮𝐩 𝐈𝐧𝐬𝐩𝐞𝐜𝐭𝐨𝐫",
-                        body: "Análisis completado ✧",
-                        thumbnailUrl: pp || thumb,
+                text: caption, 
+                contextInfo: { 
+                    mentionedJid: [metadata.owner],
+                    externalAdReply: { 
+                        title: "𝐌𝐢𝐬𝐚 𝐆𝐫𝐨𝐮𝐩 𝐈𝐧𝐬𝐩𝐞𝐜𝐭𝐨𝐫", 
+                        body: "Análisis de grupo completado ✧", 
+                        thumbnailUrl: pp || thumb, 
                         mediaType: 1,
-                        showAdAttribution: false
-                    }
-                }
+                        showAdAttribution: true
+                    } 
+                } 
             }, { quoted: m })
-        } else if (channelUrl) {
-            try {
-                let newsletterInfo = await conn.newsletterMetadata("invite", channelUrl).catch(() => null)
-                if (!newsletterInfo) return conn.sendMessage(chat, { text: "> ✐  *No se encontró el canal.*" }, { quoted: m })
-                
-                let caption = `ʚ 𝐌𝐢𝐬𝐚 𝐂𝐡𝐚𝐧𝐧𝐞𝐥 𝐈𝐧𝐬𝐩𝐞𝐜𝐭 ɞ\n⊹₊ ˚‧︵‿₊୨୧₊‿︵‧ ˚ ₊⊹\n\n`
-                caption += `> ✰ *${formatKey('name')}:* ${newsletterInfo.name}\n`
-                caption += `> ✰ *${formatKey('id')}:* ${newsletterInfo.id}\n`
-                caption += `> ✰ *${formatKey('subscribers')}:* ${newsletterInfo.subscribers || '0'}\n`
-                caption += `\n> Powered by 𝓜𝓲𝓼𝓪 ♡`
 
-                pp = newsletterInfo?.preview ? getUrlFromDirectPath(newsletterInfo.preview) : thumb
+            await conn.sendMessage(chat, { react: { text: '✅', key: m.key } })
 
-                await conn.sendMessage(chat, { 
-                    text: caption, 
-                    contextInfo: {
-                        externalAdReply: {
-                            title: "𝐌𝐢𝐬𝐚 𝐂𝐡𝐚𝐧𝐧𝐞𝐥 𝐈𝐧𝐬𝐩𝐞𝐜𝐭𝐨𝐫",
-                            thumbnailUrl: pp,
-                            mediaType: 1
-                        }
-                    }
-                }, { quoted: m })
-            } catch (e) {
-                await conn.sendMessage(chat, { text: `> ✐  *Error:* ${e.message}` }, { quoted: m })
-            }
+        } catch (e) {
+            console.error("Error Inspect:", e)
+            await conn.sendMessage(chat, { react: { text: '✖️', key: m.key } })
+            return conn.sendMessage(chat, { 
+                text: `> ✐  *Error:* No pude obtener la información.\n> *Nota:* Asegúrate de que el link sea válido o que yo esté en el grupo.` 
+            }, { quoted: m })
         }
     }
 }
 
-export default inspectMisaFinal
+export default inspectMisaGroups
