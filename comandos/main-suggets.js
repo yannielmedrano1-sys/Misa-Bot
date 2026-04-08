@@ -1,35 +1,31 @@
-import { jidDecode } from '@whiskeysockets/baileys'
-
 /**
- * ꕤ ━━━━━━━━━━ SUGGEST SYSTEM (LID DECODER) - 𝓜𝓲𝓼𝓪 ━━━━━━━━━━ ꕤ
+ * ꕤ ━━━━━━━━━━ SUGGEST MANUAL - 𝓜𝓲𝓼𝓪 ━━━━━━━━━━ ꕤ
  */
 
-const suggestMisaAntiLid = {
+const suggestMisaFinal = {
     name: 'sug',
     alias: ['suggest', 'sugerencia'],
     category: 'info',
     noPrefix: true,
 
-    run: async (conn, m, { text, command }) => {
+    run: async (conn, m, { text, command, prefix }) => {
         const chat = m.key.remoteJid || m.chat
+        const senderLid = m.sender || m.key.participant || 'Desconocido'
         
-        // --- 🛡️ DECODIFICADOR MAESTRO PARA ELIMINAR EL LID ---
-        const decodeJid = (jid) => {
-            if (!jid) return jid
-            if (/:\d+@/gi.test(jid)) {
-                let decode = jidDecode(jid) || {}
-                return decode.user && decode.server && decode.user + '@' + decode.server || jid
-            } else return jid
-        }
+        // --- DIVIDIR TEXTO ---
+        // Esperamos: [número] [idea]
+        const args = text?.trim().split(' ')
+        const numeroAportado = args?.[0]
+        const ideaAportada = args?.slice(1).join(' ')
 
-        // Obtenemos el JID real decodificado (esto quita el LID y deja el número)
-        const jidReal = decodeJid(m.sender || m.key.participant || '')
-        const numeroPuro = jidReal.split('@')[0]
-        
-        if (!text || text.length < 5) {
-            return conn.sendMessage(chat, { 
-                text: `> ✐  *Misa necesita más detalles.* ✧\n> *Uso:* \`${command} [tu idea aquí]\`` 
-            }, { quoted: m })
+        // Si falta el número o la idea, mandamos el ejemplo
+        if (!numeroAportado || !ideaAportada || ideaAportada.length < 5) {
+            const ejemplo = `> ✐  *Formato de sugerencia:* ✧\n\n` +
+                            `*Uso:* \`${command} [número] [idea]\`\n` +
+                            `*Ejemplo:* \`${command} 18492797341 poner más comandos de anime\`\n\n` +
+                            `> 💡 *Nota:* No olvides poner el código de país sin espacios.`
+            
+            return conn.sendMessage(chat, { text: ejemplo }, { quoted: m })
         }
 
         try {
@@ -37,25 +33,28 @@ const suggestMisaAntiLid = {
 
             const sugID = Math.random().toString(36).substring(2, 6).toUpperCase()
             const user = m.pushName || 'Usuario'
-            const pp = await conn.profilePictureUrl(jidReal, 'image').catch(() => 'https://i.pinimg.com/736x/30/6d/5d/306d5d75b0e4be7706e4fe784507154b.jpg')
+            const pp = await conn.profilePictureUrl(m.sender, 'image').catch(() => 'https://i.pinimg.com/736x/30/6d/5d/306d5d75b0e4be7706e4fe784507154b.jpg')
             
-            // --- MENSAJE PARA EL STAFF (OWNERS) ---
+            // Limpiamos el número aportado de símbolos para el link
+            const linkNumero = numeroAportado.replace(/[^0-9]/g, '')
+
+            // --- MENSAJE PARA EL STAFF ---
             const reportMsg = `
 ✧ ‧₊˚ 𝓢𝓾𝓰𝓮𝓻𝓮𝓷𝓬𝓲𝓪 # ${sugID} ୧ֹ˖ ⑅ ࣪⊹
 ⊹₊ ˚‧︵‿₊୨୧₊‿︵‧ ˚ ₊⊹
 
 👤 *Usuario:* ${user}
-📱 *Número:* ${numeroPuro}
-🔗 *Chat Directo:* wa.me/${numeroPuro}
+📱 *Número Provisto:* ${numeroAportado}
+🔗 *Chat Directo:* wa.me/${linkNumero}
 
 📝 *Sugerencia:*
-> ${text.trim()}
+> ${ideaAportada}
 
-✰ *Estado:* 🟢 Pendiente
-⊹₊ ˚‧︵‿₊୨୧₊‿︵‧ ˚ ₊⊹
-> *Misa ha decodificado el número con éxito.*`.trim()
+─── · · · 🗝️ · · · ───
+🆔 *LID Técnico:* \`${senderLid}\`
+> Powered by 𝓜𝓲𝓼𝓪 ♡`.trim()
 
-            // TUS NÚMEROS (Owners)
+            // TUS NÚMEROS (Owners registrados en Sky Ultra)
             const staff = [
                 '18492797341@s.whatsapp.net', 
                 '18297677527@s.whatsapp.net'
@@ -65,12 +64,11 @@ const suggestMisaAntiLid = {
                 await conn.sendMessage(target, {
                     text: reportMsg,
                     contextInfo: {
-                        mentionedJid: [jidReal],
                         externalAdReply: {
-                            title: `💡 IDEA DE: ${user}`,
-                            body: `Número: ${numeroPuro}`,
+                            title: `💡 SUGERENCIA DE: ${user}`,
+                            body: `Número: ${numeroAportado}`,
                             thumbnailUrl: pp,
-                            sourceUrl: `https://wa.me/${numeroPuro}`,
+                            sourceUrl: `https://wa.me/${linkNumero}`,
                             mediaType: 1,
                             showAdAttribution: true
                         }
@@ -80,16 +78,16 @@ const suggestMisaAntiLid = {
 
             // Confirmación al usuario
             await conn.sendMessage(chat, { 
-                text: `> ✐  *¡Sugerencia enviada!* ✧\n> Gracias, ${user}. Tu mensaje llegó al Staff desde tu número: ${numeroPuro}` 
+                text: `> ✐  *¡Sugerencia enviada!* ✧\n> Gracias, ${user}. Tu propuesta ha sido enviada con el número: **${numeroAportado}**.` 
             }, { quoted: m })
             
             await conn.sendMessage(chat, { react: { text: '✅', key: m.key } })
 
         } catch (err) {
-            console.error("ERROR SUGGEST:", err)
-            await conn.sendMessage(chat, { text: `> ✐  *Error:* No se pudo enviar.` }, { quoted: m })
+            console.error("ERROR SUGGEST FINAL:", err)
+            await conn.sendMessage(chat, { text: `> ✐  *Error:* El Staff no pudo recibir tu mensaje.` }, { quoted: m })
         }
     }
 }
 
-export default suggestMisaAntiLid
+export default suggestMisaFinal
