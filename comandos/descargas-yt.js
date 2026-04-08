@@ -1,3 +1,7 @@
+/* Código creado por Yanniel, y optimizado por el brother mio 
+por favor y no quites los créditos.
+https://github.com/yannielmedrano1-sys
+*/
 import axios from 'axios'
 import { config } from '../config.js'
 
