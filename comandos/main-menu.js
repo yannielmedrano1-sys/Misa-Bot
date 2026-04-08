@@ -51,6 +51,57 @@ const menuCommand = {
 ✿︎ ${prefix}botinfo • ${prefix}info
 > ❀ Información detallada del sistema.
 
+*˚.⋆ֹ　 ꒰ 𝙳 𝙾 𝚆 𝙽 𝙻 𝙾 𝙰 𝙳 𝙴 𝚁 𝚂 ꒱ㆍ₊⊹*
+> ✐ Descarga contenido multimedia al instante.
+
+✿︎ ${prefix}play • ${prefix}music • ${prefix}ytmp3
+> ❀ Descarga música desde YouTube.
+✿︎ ${prefix}play2 • ${prefix}video • ${prefix}vid
+> ❀ Descarga videos desde YouTube.
+✿︎ ${prefix}tiktok • ${prefix}tt • ${prefix}tts
+> ❀ Descarga videos de TikTok (sin marca de agua).
+
+*˚.⋆ֹ　 ꒰ 𝚂 𝚃 𝙸 𝙲 𝙺 𝙴 𝚁 𝚂 ꒱ㆍ₊⊹*
+> ✐ Crea y manipula stickers divertidos.
+
+✿︎ ${prefix}s • ${prefix}sticker
+> ❀ Convierte imágenes o videos en stickers.
+✿︎ ${prefix}qc • ${prefix}quote
+> ❀ Crea un sticker con texto tipo mensaje.
+✿︎ ${prefix}stickerly • ${prefix}sly • ${prefix}pack
+> ❀ Busca packs de stickers completos.
+✿︎ ${prefix}emojimix • ${prefix}emix
+> ❀ Mezcla dos emojis en un sticker.
+
+*˚.⋆ֹ　 ꒰ 𝚃 𝙾 𝙾 𝙻 𝚂 – 𝚄 𝚃 𝙸 𝙻 𝚂 ꒱ㆍ₊⊹*
+> ✐ Utilidades prácticas para tu día a día.
+
+✿︎ ${prefix}toimg • ${prefix}img • ${prefix}tophoto
+> ❀ Convierte stickers en imágenes.
+✿︎ ${prefix}hd • ${prefix}remini • ${prefix}enhance
+> ❀ Mejora la calidad de tus fotos.
+✿︎ ${prefix}read • ${prefix}ver • ${prefix}readvo
+> ❀ Revela mensajes de "Ver una sola vez".
+✿︎ ${prefix}ssweb • ${prefix}ss • ${prefix}screenshot
+> ❀ Captura de pantalla de un sitio web.
+✿︎ ${prefix}get • ${prefix}fetch • ${prefix}getjson
+> ❀ Obtén el código fuente de un JSON/API.
+
+*˚.⋆ֹ　 ꒰ 𝙸 𝙰 – 𝚂 𝙴 𝙰 𝚁 𝙲 𝙷 ꒱ㆍ₊⊹*
+> ✐ Inteligencia artificial y búsquedas.
+
+✿︎ ${prefix}ia • ${prefix}gpt • ${prefix}gemini
+> ❀ Chatea con la inteligencia artificial.
+✿︎ ${prefix}pin • ${prefix}pinterest
+> ❀ Busca imágenes estéticas en Pinterest (x5).
+
+*˚.⋆ֹ　 ꒰ 𝙶 𝚁 𝙾 𝚄 𝙿 𝚂 ꒱ㆍ₊⊹*
+> ✐ Gestión de grupos y administración.
+
+✿︎ ${prefix}inspect • ${prefix}revisar • ${prefix}ginfo
+> ❀ Obtén información de un grupo mediante link.
+✿︎ ${prefix}link • ${prefix}grouplink
+> ❀ Obtén el enlace de invitación del grupo.
 
 *˚.⋆ֹ　 ꒰ 𝚂 𝙾 𝙲 𝙺 𝙴 𝚃 𝚂 ꒱ㆍ₊⊹*
 > ✐ Gestión de sub-bots y conexiones.
@@ -59,7 +110,6 @@ const menuCommand = {
 > ❀ Hazte Sub-Bot de 𝓜𝓲𝓼𝓪.
 ✿︎ ${prefix}bots • ${prefix}sockets
 > ❀ Mira la lista de sockets activos.
-
 
 *˚.⋆ֹ　 ꒰ 𝙾 𝚆 𝙽 𝙴 𝚁 ꒱ㆍ₊⊹*
 > ✐ Herramientas exclusivas del owner/creador.
