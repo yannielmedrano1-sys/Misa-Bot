@@ -3,10 +3,10 @@ import pino from 'pino'
 
 /**
  * ꕤ ━━━━━━━━━━ TO IMAGE - 𝓜𝓲𝓼𝓪 𝓑𝓸𝓽 ━━━━━━━━━━ ꕤ
- * Versión con Detección Profunda para Yanniel
+ * VERSIÓN ULTRA-DETECCIÓN (BYPASS QUOTED ERROR)
  */
 
-const toImageMisa = {
+const toImageMisaExtra = {
     name: 'toimg',
     alias: ['toimage', 'img'],
     category: 'tools',
@@ -15,44 +15,53 @@ const toImageMisa = {
     run: async (conn, m) => {
         const chat = m.key.remoteJid || m.chat
         
-        // --- DETECTOR ULTRA-SENSIBLE ---
-        // Intentamos obtener el mensaje citado de todas las rutas posibles en el JSON de Baileys
-        let quoted = m.quoted ? m.quoted : (m.msg?.contextInfo?.quotedMessage ? m.msg.contextInfo.quotedMessage : null)
+        // --- BUSCADOR DE STICKER NIVEL DIOS ---
+        // 1. Intentamos obtener el mensaje citado desde todas las rutas posibles
+        let quotedMsg = m.quoted ? m.quoted : (m.msg?.contextInfo?.quotedMessage ? m.msg.contextInfo.quotedMessage : null)
         
-        // Si el quoted es el mensaje completo, extraemos solo el contenido del mensaje
-        let messageContent = quoted?.message ? quoted.message : quoted
-
-        // Buscamos específicamente el stickerMessage
-        let stickerMsg = messageContent?.stickerMessage || m.msg?.stickerMessage
-        
-        // Si no hay sticker, buscamos si es una imagen
-        let imageMsg = messageContent?.imageMessage || m.msg?.imageMessage
-
-        if (!stickerMsg && !imageMsg) {
+        // 2. Si no hay nada citado, salimos
+        if (!quotedMsg) {
             return conn.sendMessage(chat, { 
-                text: `> ✐  *Misa necesita que respondas a un sticker.* ✧\n> *Asegúrate de que el sticker cargue bien antes de responder.*` 
+                text: `> ✐  *Misa necesita que respondas a un sticker.* ✧` 
+            }, { quoted: m })
+        }
+
+        // 3. Extraemos el cuerpo real del mensaje (limpiamos capas de Baileys)
+        let msgBody = quotedMsg.message ? quotedMsg.message : quotedMsg
+        let type = getContentType(msgBody)
+        
+        // 4. Verificamos si realmente hay un sticker ahí dentro
+        const isSticker = type === 'stickerMessage' || msgBody?.stickerMessage
+        const isImage = type === 'imageMessage' || msgBody?.imageMessage
+
+        if (!isSticker && !isImage) {
+            return conn.sendMessage(chat, { 
+                text: `> ✐  *Eso no es un sticker, Light-kun.* ✧` 
             }, { quoted: m })
         }
 
         try {
             await conn.sendMessage(chat, { react: { text: '⏳', key: m.key } })
 
-            // --- DESCARGA SEGURO ---
-            // Reconstruimos el objeto para que la función de descarga no se pierda
+            // --- DESCARGA MANUAL ---
+            // Reconstruimos el objeto para que downloadMediaMessage no se confunda
             const buffer = await downloadMediaMessage(
-                { message: messageContent },
+                { message: msgBody },
                 'buffer',
                 {},
                 { 
                     logger: pino({ level: 'silent' }), 
                     reuploadRequest: conn.updateMediaMessage 
                 }
-            )
+            ).catch(async () => {
+                // Segundo intento si el primero falla
+                return await conn.downloadMediaMessage(msgBody)
+            })
 
-            if (!buffer) throw new Error("Buffer vacío")
+            if (!buffer) throw new Error("No se pudo generar el buffer")
 
             const caption = `
-✧ ‧₊˚ *𝚂𝚃𝙸𝙲𝙺𝙴𝚁 𝚃𝙾 𝙸𝙼𝙶* ୧ֹ˖ ⑅ ࣪⊹
+ʚ 𝐌𝐢𝐬𝐚 𝐓𝐨 𝐈𝐦𝐚𝐠𝐞 ɞ
 ⊹₊ ˚‧︵‿₊୨୧₊‿︵‧ ˚ ₊⊹
 
 ✰ *Estado:* ¡Conversión exitosa!
@@ -68,13 +77,13 @@ const toImageMisa = {
             await conn.sendMessage(chat, { react: { text: '📸', key: m.key } })
 
         } catch (err) {
-            console.error("ERROR TOIMG MISA:", err)
+            console.error("ERROR CRÍTICO TOIMG:", err)
             await conn.sendMessage(chat, { react: { text: '❌', key: m.key } })
             await conn.sendMessage(chat, { 
-                text: `> ✐  *Error:* No pude extraer la imagen.\n> *Nota:* Intenta reenviar el sticker y responderle de nuevo.` 
+                text: `> ✐  *Error:* No pude procesar el mensaje citado.\n> *Causa:* El sticker no se ha descargado completamente en tu WhatsApp.` 
             }, { quoted: m })
         }
     }
 }
 
-export default toImageMisa
+export default toImageMisaExtra
