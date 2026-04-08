@@ -1,83 +1,213 @@
-import { downloadMediaMessage } from '@whiskeysockets/baileys'
-import axios from 'axios'
-import pino from 'pino'
+import crypto from 'crypto'
+import fileTypePkg from 'file-type'
+import { promises as fsp } from 'fs'
+import os from 'os'
+import path from 'path'
+import { spawn } from 'child_process'
 
-const hdMisaBrayanAPI = {
+const { fileTypeFromBuffer } = fileTypePkg
+const fetchFn = fetch
+
+const hdCommand = {
     name: 'hd',
-    alias: ['remini', 'enhance', 'mejorar'],
-    category: 'tools',
+    alias: ['enhance', 'remini'],
+    category: 'utils',
     noPrefix: true,
 
-    run: async (conn, m) => {
-        const chat = m.key.remoteJid || m.chat
-        
-        try {
-            // 1. OBTENER EL CONTENIDO (FOTO O STICKER)
-            const quotedMsg = m.quoted ? m.quoted : (m.message?.extendedTextMessage?.contextInfo?.quotedMessage || null)
-            let target = quotedMsg ? (quotedMsg.message ? quotedMsg.message : quotedMsg) : m.message
-            
-            const type = Object.keys(target)[0]
-            const mime = (target[type]?.mimetype || target.mimetype || '')
+    run: async (conn, m, { command }) => {
+        const chat = m.key.remoteJid
 
-            if (!/image|webp/.test(mime)) {
-                return conn.sendMessage(chat, { 
-                    text: `> ✐  *Misa necesita una imagen para mejorar.* ✧\n> *Responde a una foto o sticker.*` 
+        try {
+            const q = m.quoted || m
+            const mime = q?.mimetype || q?.msg?.mimetype || ''
+
+            if (!mime) {
+                return conn.sendMessage(chat, {
+                    text: `🖼️ Responde a una imagen con *${command}*`
                 }, { quoted: m })
             }
 
-            await conn.sendMessage(chat, { react: { text: '⏳', key: m.key } })
+            if (!/^image\/(jpe?g|png|webp)$/i.test(mime)) {
+                return conn.sendMessage(chat, {
+                    text: `❌ Formato no compatible:\n${mime}`
+                }, { quoted: m })
+            }
 
-            // 2. DESCARGA DEL BUFFER
-            let buffer = await downloadMediaMessage(
-                { message: target },
-                'buffer',
-                {},
-                { logger: pino({ level: 'silent' }), reuploadRequest: conn.updateMediaMessage }
-            )
-
-            if (!buffer) throw new Error("No se pudo obtener el archivo.")
-
-            // 3. ENVIAR A LA API DE BRAYAN (Upscale)
-            // Usamos FormData para enviar el buffer directamente
-            const FormData = (await import('form-data')).default
-            const form = new FormData()
-            form.append('image', buffer, { filename: 'remini.jpg' })
-
-            const res = await axios.post('https://api.brayanofc.shop/tools/upscale', form, {
-                headers: { 
-                    ...form.getHeaders(),
-                    'Accept': 'application/json'
-                },
-                responseType: 'arraybuffer' // Recibimos la imagen mejorada directamente en buffer
+            await conn.sendMessage(chat, {
+                react: { text: '🕒', key: m.key }
             })
 
-            if (!res.data) throw new Error("La API no devolvió datos.")
+            const buffer = await q.download?.()
 
-            // 4. DISEÑO FINAL MISA
-            const caption = `
-ʚ 𝐌𝐢𝐬𝐚 𝐇𝐃 𝐄𝐧𝐡𝐚𝐧𝐜𝐞 ɞ
-⊹₊ ˚‧︵‿₊୨୧₊‿︵‧ ˚ ₊⊹
+            if (!buffer || !Buffer.isBuffer(buffer) || buffer.length < 10) {
+                throw new Error('No se pudo descargar la imagen')
+            }
 
-✰ *Estado:* ¡Imagen reconstruida!
-   > ✿ *Calidad:* 4K Ultra High-Res
+            const ft = await safeFileType(buffer)
+            const inputMime = ft?.mime || mime || 'image/jpeg'
 
-> Powered by 𝓜𝓲𝓼𝓪 ♡`.trim()
+            const result = await vectorinkEnhanceFromBuffer(buffer, inputMime)
 
-            await conn.sendMessage(chat, { 
-                image: Buffer.from(res.data), 
-                caption: caption 
+            if (!result?.ok || !result?.buffer) {
+                throw new Error(
+                    result?.error?.code ||
+                    result?.error?.step ||
+                    result?.error?.message ||
+                    'Error desconocido'
+                )
+            }
+
+            await conn.sendMessage(chat, {
+                image: result.buffer,
+                caption: '✨ Imagen mejorada con éxito'
             }, { quoted: m })
-            
-            await conn.sendMessage(chat, { react: { text: '✅', key: m.key } })
+
+            await conn.sendMessage(chat, {
+                react: { text: '✅', key: m.key }
+            })
 
         } catch (e) {
-            console.error("ERROR HD BRAYAN API:", e)
-            await conn.sendMessage(chat, { react: { text: '❌', key: m.key } })
-            await conn.sendMessage(chat, { 
-                text: `> ✐  *Error:* No pude mejorar la imagen.\n> *Nota:* Intenta con una imagen que no sea tan pesada.` 
+            console.error('HD ERROR:', e)
+
+            await conn.sendMessage(chat, {
+                react: { text: '✖️', key: m.key }
+            })
+
+            await conn.sendMessage(chat, {
+                text: `❌ Error al mejorar imagen\n📌 ${e.message}`
             }, { quoted: m })
         }
     }
 }
 
-export default hdMisaBrayanAPI
+export default hdCommand
+
+async function safeFileType(buf) {
+    try {
+        return await fileTypeFromBuffer(buf)
+    } catch {
+        return null
+    }
+}
+
+async function safeJson(res) {
+    const t = await res.text().catch(() => '')
+    try {
+        return JSON.parse(t)
+    } catch {
+        return { raw: t }
+    }
+}
+
+function extFromMime(mime) {
+    if (/png/i.test(mime)) return 'png'
+    if (/webp/i.test(mime)) return 'webp'
+    return 'jpg'
+}
+
+function runFfmpeg(args, timeoutMs = 60000) {
+    return new Promise((resolve, reject) => {
+        const p = spawn('ffmpeg', args, { stdio: ['ignore', 'ignore', 'pipe'] })
+
+        let err = ''
+
+        const t = setTimeout(() => {
+            try { p.kill('SIGKILL') } catch {}
+            reject(new Error('ffmpeg timeout'))
+        }, timeoutMs)
+
+        p.stderr.on('data', d => err += d.toString())
+
+        p.on('error', e => {
+            clearTimeout(t)
+            reject(e)
+        })
+
+        p.on('close', code => {
+            clearTimeout(t)
+            if (code === 0) resolve(true)
+            else reject(new Error(err || `ffmpeg failed (${code})`))
+        })
+    })
+}
+
+async function webpToPngWithFfmpeg(webpBuf, tmpDir) {
+    const inPath = path.join(tmpDir, `hd_${Date.now()}.webp`)
+    const outPath = path.join(tmpDir, `hd_${Date.now()}.png`)
+
+    await fsp.writeFile(inPath, webpBuf)
+
+    try {
+        await runFfmpeg(['-y', '-i', inPath, '-frames:v', '1', outPath])
+
+        const png = await fsp.readFile(outPath)
+
+        return { ok: true, png }
+
+    } catch (e) {
+        return { ok: false, error: e.message }
+
+    } finally {
+        try { await fsp.unlink(inPath) } catch {}
+        try { await fsp.unlink(outPath) } catch {}
+    }
+}
+
+async function vectorinkEnhanceFromBuffer(inputBuf, inputMime) {
+    const API = 'https://us-central1-vector-ink.cloudfunctions.net/upscaleImage'
+
+    const tmpDir = path.join(os.tmpdir(), 'vectorink')
+    const tmpPath = path.join(tmpDir, `img_${Date.now()}.${extFromMime(inputMime)}`)
+
+    const out = { ok: false }
+
+    try {
+        await fsp.mkdir(tmpDir, { recursive: true })
+        await fsp.writeFile(tmpPath, inputBuf)
+
+        const b64 = (await fsp.readFile(tmpPath)).toString('base64')
+
+        const r = await fetchFn(API, {
+            method: 'POST',
+            headers: {
+                'content-type': 'application/json',
+                origin: 'https://vectorink.io',
+                referer: 'https://vectorink.io/'
+            },
+            body: JSON.stringify({
+                data: { image: b64 }
+            })
+        })
+
+        const j = await safeJson(r)
+
+        const innerText = j?.result
+        const inner = JSON.parse(innerText)
+
+        const webpB64 = inner?.image?.b64_json
+
+        if (!webpB64) {
+            throw new Error('La API no devolvió imagen')
+        }
+
+        const webpBuf = Buffer.from(webpB64, 'base64')
+
+        const conv = await webpToPngWithFfmpeg(webpBuf, tmpDir)
+
+        if (!conv.ok) {
+            throw new Error(conv.error)
+        }
+
+        out.ok = true
+        out.buffer = conv.png
+
+        return out
+
+    } catch (e) {
+        out.error = { message: e.message }
+        return out
+
+    } finally {
+        try { await fsp.unlink(tmpPath) } catch {}
+    }
+}
