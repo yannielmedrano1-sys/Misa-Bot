@@ -33,7 +33,7 @@ const tiktokCommand = {
 
             if (!json.status || !json.data) {
                 return conn.sendMessage(chat, {
-                    text: '› ✐  *Error:* No se encontró contenido multimedia.'
+                    text: '› ✐  *Error:* No se encontró contenido multimedia. ✧'
                 }, { quoted: m })
             }
 
@@ -44,19 +44,17 @@ const tiktokCommand = {
                 return new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 }).format(num)
             }
 
+            // Aplicando tu nueva estética personalizada
             const caption = `
-*TIKKTOK DOWNLOADER*
+✧ ‧₊˚ *TIKTOK DOWNLOADER* ୧ֹ˖ ⑅ ࣪⊹
+⊹₊ ˚‧︵‿₊୨୧₊‿︵‧ ˚ ₊⊹
+✰ Título: *${v.title || "TikTok Video"}*
+   › ✿ \`Autor\`: *${v.author?.nickname || v.nickname || "Anónimo"}*
+   › ✦ \`Likes\`: *${formatNr(v.stats?.likeCount || v.like)}*
+   › ꕤ \`Vistas\`: *${formatNr(v.stats?.playCount || v.views)}*
+   › ❖ \`Coments\`: *${formatNr(v.stats?.commentCount || v.comment)}*
 
-*Autor:* ${v.author?.nickname || v.nickname || 'Anónimo'}
-*Título:* ${v.title || 'Sin descripción'}
-
-*Estadísticas:*
-*Likes:* ${formatNr(v.stats?.likeCount || v.like)}
-*Comentarios:* ${formatNr(v.stats?.commentCount || v.comment)}
-*Compartidos:* ${formatNr(v.stats?.shareCount || v.share)}
-*Vistas:* ${formatNr(v.stats?.playCount || v.views)}
-
-> 𝓜𝓲𝓼𝓪 𝘽𝙊𝙏 🖤`.trim()
+> Powered by 𝓜𝓲𝓼𝓪 ♡`.trim()
 
             const videoUrl = isUrl 
                 ? (Array.isArray(v.dl) ? v.dl[0] : v.dl)
@@ -72,7 +70,7 @@ const tiktokCommand = {
         } catch (e) {
             console.error("TT ERROR:", e)
             await conn.sendMessage(chat, {
-                text: '› ✐  *Error:* No se pudo procesar el TikTok.'
+                text: '› ✐  *Error:* No se pudo procesar el TikTok. ✧'
             }, { quoted: m })
         }
     }
