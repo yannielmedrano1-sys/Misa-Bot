@@ -20,18 +20,18 @@ const play2Command = {
         try {
             const search = await yts(text)
             const v = search.videos[0]
-            if (!v) return conn.sendMessage(chat, { text: '> ✐ No encontré ese video.' }, { quoted: m })
+            if (!v) return conn.sendMessage(chat, { text: '> ✐ No encontré nada relacionado con eso.' }, { quoted: m })
 
             const url = v.url
             let videoUrl = null
             let filesize = 'Variable'
-            let calidad = '720p'
 
             const apiSources = [
                 { url: `https://api.brayanofc.shop/dl/ytmp4v2?url=${encodeURIComponent(url)}&key=api-gmnch`, path: (d) => d.data?.dl, sizePath: (d) => d.data?.size },
                 { url: `https://api.nexylight.xyz/dl/ytmp4?id=${v.videoId}&quality=720&key=nexy-9ccbbb`, path: (d) => d.download?.url, sizePath: (d) => d.download?.size },
                 { url: `https://api.brayanofc.shop/dl/youtubev2?url=${encodeURIComponent(url)}&key=api-gmnch`, path: (d) => d.results?.formats.find(f => f.itag == '18' || f.label.includes('With Sound'))?.url, sizePath: (d) => null },
-                { url: `https://api.brayanofc.shop/dl/ytdl?url=${encodeURIComponent(url)}&type=mp4&key=api-gmnch`, path: (d) => d.result?.download, sizePath: (d) => null }
+                { url: `https://api.boxmine.xyz/down/ytvideo?url=${encodeURIComponent(url)}`, path: (d) => d.resultado?.url_dl, sizePath: (d) => d.resultado?.size },
+                { url: `https://api.vreden.xyz/api/v1/download/youtube/video?url=${encodeURIComponent(url)}`, path: (d) => d.result?.download?.url, sizePath: (d) => d.result?.download?.size }
             ]
 
             for (const source of apiSources) {
@@ -40,8 +40,7 @@ const play2Command = {
                     const link = source.path(res.data)
                     if (link) {
                         videoUrl = link
-                        const rawSize = source.sizePath(res.data)
-                        // 🛠️ FIX: Solo filtramos si el dato parece un peso real (contiene MB o GB)
+                        const rawSize = source.sizePath ? source.sizePath(res.data) : null
                         if (rawSize && (rawSize.includes('MB') || rawSize.includes('GB'))) {
                             filesize = rawSize
                             const sizeNum = parseFloat(rawSize.replace(/[^0-9.]/g, ''))
@@ -57,6 +56,7 @@ const play2Command = {
             if (!videoUrl) throw new Error()
 
             const formatViews = (n) => {
+                if (n >= 1e9) return (n / 1e9).toFixed(1) + 'B'
                 if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M'
                 if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K'
                 return n.toLocaleString()
@@ -66,18 +66,18 @@ const play2Command = {
 ⊹₊ ˚‧︵‿₊୨୧₊‿︵‧ ˚ ₊⊹
 ✰ Título: ${v.title}
    › ✦ \`Peso\`: *${filesize}*
-   › ⏱ \`Duración\`: *${v.timestamp}*
+   › ⏱ \`Duración\`: *${v.timestamp || v.duration}*
    › ꕤ \`Vistas\`: *${formatViews(v.views)}*
    › ❖ \`Link\`: *${v.url}*
 
-> Powered by 𝓜𝓲𝓼α ♡`.trim()
+> Powered by 𝓜𝓲𝓼𝓪 ♡`.trim()
 
             await conn.sendMessage(chat, { 
                 text: textoPlay,
                 contextInfo: {
                     externalAdReply: {
                         title: v.title,
-                        body: '𝓜𝓲𝓼α 𝘿𝙤𝙬𝙣𝙡𝙤𝙖𝙙𝙚𝙧 🖤',
+                        body: '𝓜𝓲𝓼𝓪 𝘿𝙤𝙬𝙣loader 🖤',
                         thumbnailUrl: v.image,
                         sourceUrl: url,
                         mediaType: 1,
