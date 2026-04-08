@@ -1,7 +1,7 @@
 import { downloadMediaMessage } from '@whiskeysockets/baileys'
 import fetch from 'node-fetch'
 
-const hdMisaVersionFinal = {
+const hdMisaFinalBossFixed = {
     name: 'hd',
     alias: ['remini', 'enhance', 'mejorar'],
     category: 'tools',
@@ -11,38 +11,40 @@ const hdMisaVersionFinal = {
         const chat = m.key.remoteJid
         
         try {
-            // 1. UBICAR EL MENSAJE CON MEDIA
-            let msg = m.quoted ? m.quoted : m
-            let quotedMsg = m.msg?.contextInfo?.quotedMessage || m.message?.extendedTextMessage?.contextInfo?.quotedMessage
-            
-            // Extraer el contenido real de la imagen
-            let imageContent = m.message?.imageMessage || 
-                               m.message?.stickerMessage || 
-                               quotedMsg?.imageMessage || 
-                               quotedMsg?.stickerMessage || 
-                               msg.imageMessage
+            // 1. OBTENER EL MENSAJE CORRECTO
+            let q = m.quoted ? m.quoted : m
+            let mime = (q.msg || q).mimetype || ''
 
-            if (!imageContent) {
+            if (!mime || !/image|webp/.test(mime)) {
                 return conn.sendMessage(chat, { 
-                    text: `> ✐  *No detecto la imagen.* ✧\n> *Asegúrate de responder directamente a una foto.*` 
+                    text: `> ✐  *No detecto la imagen.* ✧\n> *Responde directamente a una foto.*` 
                 }, { quoted: m })
             }
 
             await conn.sendMessage(chat, { react: { text: '⏳', key: m.key } })
 
-            // 2. DESCARGA CORRECTA (Usando la función importada de Baileys)
-            const buffer = await downloadMediaMessage(
-                m.quoted ? { message: quotedMsg } : m,
-                'buffer',
-                {},
-                { 
-                    reuploadRequest: conn.updateMediaMessage 
-                }
-            )
+            // 2. DESCARGA RECONSTRUIDA (Para evitar el error de Media Key)
+            let buffer
+            try {
+                // Intentamos descargar usando el objeto 'q' directamente
+                buffer = await downloadMediaMessage(
+                    q,
+                    'buffer',
+                    {},
+                    { 
+                        logger: pino({ level: 'silent' }),
+                        reuploadRequest: conn.updateMediaMessage 
+                    }
+                )
+            } catch (err) {
+                // Si falla, intentamos el método de emergencia
+                console.log("INTENTANDO MÉTODO DE EMERGENCIA...")
+                buffer = await q.download?.()
+            }
 
-            if (!buffer) throw new Error("No se pudo generar el buffer de imagen")
+            if (!buffer) throw new Error("No se pudo obtener el media key del archivo")
 
-            // 3. API DE MEJORA (VectorInk)
+            // 3. API DE MEJORA
             const imageData = buffer.toString('base64')
             const response = await fetch('https://us-central1-vector-ink.cloudfunctions.net/upscaleImage', {
                 method: 'POST',
@@ -55,7 +57,6 @@ const hdMisaVersionFinal = {
             const base64Image = result?.image?.b64_json
 
             if (!base64Image) throw new Error("La API no devolvió una imagen válida")
-
             const outputBuffer = Buffer.from(base64Image, 'base64')
 
             // 4. DISEÑO MISA
@@ -63,8 +64,8 @@ const hdMisaVersionFinal = {
 ʚ 𝐌𝐢𝐬𝐚 𝐇𝐃 𝐄𝐧𝐡𝐚𝐧𝐜𝐞 ɞ
 ⊹₊ ˚‧︵‿₊୨୧₊‿︵‧ ˚ ₊⊹
 
-✰ *Estado:* ¡Mejora exitosa!
-   > ✿ *Calidad:* Remini Style
+✰ *Estado:* ¡Imagen reconstruida!
+   > ✿ *Calidad:* Remini High-Res
 
 > Powered by 𝓜𝓲𝓼𝓪 ♡`.trim()
 
@@ -72,13 +73,13 @@ const hdMisaVersionFinal = {
             await conn.sendMessage(chat, { react: { text: '✅', key: m.key } })
 
         } catch (e) {
-            console.error("ERROR HD MISA:", e)
-            await conn.sendMessage(chat, { react: { text: '✖️', key: m.key } })
+            console.error("ERROR CRÍTICO HD:", e)
+            await conn.sendMessage(chat, { react: { text: '❌', key: m.key } })
             await conn.sendMessage(chat, { 
-                text: `> ✐  *Error:* No se pudo procesar la imagen.\n> *Detalle:* ${e.message}` 
+                text: `> ✐  *Error de Llave:* No pude procesar esta imagen específica.\n> *Tip:* Prueba reenviando la foto al grupo y respondiendo de nuevo.` 
             }, { quoted: m })
         }
     }
 }
 
-export default hdMisaVersionFinal
+export default hdMisaFinalBossFixed
