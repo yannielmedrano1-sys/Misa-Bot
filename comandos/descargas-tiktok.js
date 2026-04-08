@@ -46,10 +46,11 @@ const tiktokCommand = {
         try {
             const v = isUrl ? data : (Array.isArray(data) ? data[0] : data)
             
-            // 🛠️ MAPEADO ESPECÍFICO PARA LA API DE BRAYAN + FALLBACKS
+            // 🛠️ MAPEADO DE ESTADÍSTICAS
             const vistasReales = v.stats?.plays || v.stats?.playCount || v.views || 0
             const likesReales = v.stats?.likes || v.stats?.likeCount || v.like || 0
             const commentsReales = v.stats?.comments || v.stats?.commentCount || v.comment || 0
+            const videoLink = isUrl ? text : `https://www.tiktok.com/@${v.author?.unique_id || 'user'}/video/${v.id}`
 
             const formatNr = (num) => {
                 if (!num || num === 0) return '0'
@@ -64,10 +65,10 @@ const tiktokCommand = {
    › ✦ \`Likes\`: *${formatNr(likesReales)}*
    › ꕤ \`Vistas\`: *${formatNr(vistasReales)}*
    › ❖ \`Coments\`: *${formatNr(commentsReales)}*
+   › ❖ \`Link\`: *${videoLink}*
 
 > Powered by 𝓜𝓲𝓼𝓪 ♡`.trim()
 
-            // Priorizamos el link de descarga de la API de Brayan
             const videoUrl = v.dl || v.video || v.url
 
             await conn.sendMessage(chat, {
