@@ -70,7 +70,7 @@ const playCommand = {
 ⊹₊ ˚‧︵‿₊୨୧₊‿︵‧ ˚ ₊⊹
 ✰ Título: ${v.title}
    › ✦ \`Calidad\`: *${calidad}*
-   › ⏱ \`Duración\`: *${v.timestamp || v.duration}*
+   › ❀ \`Duración\`: *${v.timestamp || v.duration}*
    › ꕤ \`Vistas\`: *${formatViews(v.views)}*
    › ❖ \`Link\`: *${v.url}*
 
