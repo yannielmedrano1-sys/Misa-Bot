@@ -1,8 +1,14 @@
 import fetch from 'node-fetch';
 import FormData from 'form-data';
 import * as cheerio from 'cheerio';
+import { downloadMediaMessage } from '@whiskeysockets/baileys';
 
-// --- FUNCIONES DE APOYO (EzGif Scraper) ---
+/**
+ * Misa-Bot - Conversor de Stickers para Yanniel
+ * Optimizada para la estructura del repositorio Misa-Bot
+ */
+
+// --- FUNCIONES DE CONVERSIÓN (EzGif Scraper) ---
 
 async function webp2mp4(source) {
     let form = new FormData();
@@ -12,8 +18,7 @@ async function webp2mp4(source) {
     let html = await res.text();
     let $ = cheerio.load(html);
     let file = $('input[name="file"]').val();
-    if (!file) throw new Error("Error en el servidor de EzGif (MP4)");
-
+    if (!file) throw new Error("EzGif MP4 Error");
     let form2 = new FormData();
     form2.append('file', file);
     form2.append('convert', 'Convert WebP to MP4!');
@@ -21,8 +26,7 @@ async function webp2mp4(source) {
     let html2 = await res2.text();
     let $2 = cheerio.load(html2);
     let videoUrl = 'https:' + $2('div#output > p.outfile > video > source').attr('src');
-    let videoRes = await fetch(videoUrl);
-    return await videoRes.buffer();
+    return await (await fetch(videoUrl)).buffer();
 }
 
 async function webp2png(source) {
@@ -33,8 +37,7 @@ async function webp2png(source) {
     let html = await res.text();
     let $ = cheerio.load(html);
     let file = $('input[name="file"]').val();
-    if (!file) throw new Error("Error en el servidor de EzGif (PNG)");
-
+    if (!file) throw new Error("EzGif PNG Error");
     let form2 = new FormData();
     form2.append('file', file);
     form2.append('convert', 'Convert WebP to PNG!');
@@ -42,11 +45,8 @@ async function webp2png(source) {
     let html2 = await res2.text();
     let $2 = cheerio.load(html2);
     let imgUrl = 'https:' + $2('div#output > p.outfile > img').attr('src');
-    let imgRes = await fetch(imgUrl);
-    return await imgRes.buffer();
+    return await (await fetch(imgUrl)).buffer();
 }
-
-// --- COMANDO PRINCIPAL ---
 
 const toImageMisa = {
     name: 'toimg',
@@ -56,31 +56,40 @@ const toImageMisa = {
 
     run: async (conn, m) => {
         const chat = m.key.remoteJid;
-        
-        // 1. DETECTOR DE STICKER (Mantenemos la búsqueda profunda)
-        let q = m.quoted ? m.quoted : m;
-        let mime = (q.msg || q).mimetype || q.mediaType || (m.quoted?.message?.stickerMessage?.mimetype) || '';
-        let isSticker = q.stickerMessage || m.quoted?.message?.stickerMessage;
 
-        if (!isSticker && !/webp/.test(mime)) {
+        // --- DETECTOR DE STICKER FORZADO ---
+        // Buscamos en el mensaje citado o en el actual
+        let quoted = m.quoted ? m.quoted : (m.msg?.contextInfo?.quotedMessage ? { message: m.msg.contextInfo.quotedMessage } : null);
+        
+        // Extraemos el contenido real del stickerMessage del JSON profundo
+        let stickerMsg = quoted?.message?.stickerMessage || m.message?.stickerMessage || quoted?.stickerMessage;
+        
+        // Log de depuración para tu consola en Sky Ultra
+        console.log("--- DEBUG REPO MISA ---");
+        console.log("Sticker detectado:", !!stickerMsg);
+
+        if (!stickerMsg) {
             return conn.sendMessage(chat, { 
-                text: `> ✐  *Misa no detecta el sticker.* ✧\n> *Asegúrate de responder directamente a un sticker.*` 
+                text: `> ✐  *Misa no detecta el sticker.* ✧\n> *Asegúrate de responder directamente a un sticker con "toimg".*` 
             }, { quoted: m });
         }
 
         try {
             await conn.sendMessage(chat, { react: { text: '🕒', key: m.key } });
 
-            // 2. DESCARGA
-            let buffer = await q.download?.().catch(() => null) || 
-                         await conn.downloadMediaMessage(q).catch(() => null);
+            // DESCARGA: Reconstruimos el objeto para que downloadMediaMessage no falle
+            const buffer = await downloadMediaMessage(
+                { message: m.quoted ? m.quoted.message : m.message },
+                'buffer',
+                {},
+                { reuploadRequest: conn.updateMediaMessage }
+            );
 
-            if (!buffer) throw new Error("No se pudo descargar el archivo");
+            if (!buffer) throw new Error("No se pudo generar el buffer");
 
-            const isAnimated = q.isAnimated || q.msg?.isAnimated || isSticker?.isAnimated;
+            const isAnimated = stickerMsg.isAnimated || false;
 
             if (isAnimated) {
-                // Sticker Animado -> Video
                 const mp4Buffer = await webp2mp4(buffer);
                 await conn.sendMessage(chat, { 
                     video: mp4Buffer, 
@@ -88,7 +97,6 @@ const toImageMisa = {
                     gifPlayback: true 
                 }, { quoted: m });
             } else {
-                // Sticker Estático -> Imagen
                 const pngBuffer = await webp2png(buffer);
                 await conn.sendMessage(chat, { 
                     image: pngBuffer, 
@@ -99,12 +107,13 @@ const toImageMisa = {
             await conn.sendMessage(chat, { react: { text: '✅', key: m.key } });
 
         } catch (e) {
-            console.error("ERROR TOIMG:", e);
+            console.error("ERROR EN COMANDO TOIMG:", e);
             await conn.sendMessage(chat, { react: { text: '✖️', key: m.key } });
-            await conn.sendMessage(chat, { text: `> ✐  *Error:* No pude completar la conversión. Intenta de nuevo.` }, { quoted: m });
+            await conn.sendMessage(chat, { 
+                text: `> ✐  *Error de conversión:* ${e.message}` 
+            }, { quoted: m });
         }
     }
 };
 
-// --- EL EXPORT QUE NO PUEDE FALTAR ---
 export default toImageMisa;
