@@ -1,86 +1,70 @@
 import axios from 'axios'
 
-const pinterestMisa = {
+const pinterestMisaFixed = {
     name: 'pin',
     alias: ['pinterest'],
     category: 'search',
     noPrefix: true,
 
-    run: async (conn, m, { text, command }) => {
-        if (!text) return conn.sendMessage(m.chat, { text: "✿ ¿ǫᴜé ǫᴜɪᴇʀᴇs ʙᴜsᴄᴀʀ? ᴇᴊᴇᴍᴘʟᴏ: .pin Misa Amane icon" }, { quoted: m })
+    run: async (conn, m, { text }) => {
+        // --- CORRECCIÓN DE JID ---
+        const chat = m.key.remoteJid || m.chat
+        if (!chat) return 
+
+        if (!text) return conn.sendMessage(chat, { text: "✿ ¿ǫᴜé ǫᴜɪᴇʀᴇs ʙᴜsᴄᴀʀ? ᴇᴊᴇᴍᴘʟᴏ: .pin Misa Amane icon" }, { quoted: m })
 
         try {
-            await conn.sendMessage(m.chat, { react: { text: '🔍', key: m.key } })
+            await conn.sendMessage(chat, { react: { text: '🔍', key: m.key } })
             let pinsToSent = []
 
-            // --- CAPA 1: Pinterest V2 ---
+            // Capa 1: Pinterest V2
             try {
-                const resV2 = await axios.get(`https://api.brayanofc.shop/search/pinterestv2?query=${encodeURIComponent(text)}&key=api-gmnch`, { timeout: 15000 })
+                const resV2 = await axios.get(`https://api.brayanofc.shop/search/pinterestv2?query=${encodeURIComponent(text)}&key=api-gmnch`, { timeout: 10000 })
                 if (resV2.data?.status && resV2.data.response?.pins?.length > 0) {
                     pinsToSent = resV2.data.response.pins.slice(0, 5).map(p => ({
-                        image: p.media.images.orig.url,
-                        author: p.uploader?.full_name || "Pinterest"
+                        image: p.media.images.orig.url
                     }))
                 }
             } catch (e) { console.log("Capa 1 falló...") }
 
-            // --- CAPA 2: Pinterest V1 ---
+            // Capa 2: Pinterest V1
             if (pinsToSent.length === 0) {
                 try {
-                    const resV1 = await axios.get(`https://api.brayanofc.shop/search/pinterest?query=${encodeURIComponent(text)}&key=api-gmnch`, { timeout: 15000 })
+                    const resV1 = await axios.get(`https://api.brayanofc.shop/search/pinterest?query=${encodeURIComponent(text)}&key=api-gmnch`, { timeout: 10000 })
                     if (resV1.data?.status && resV1.data.data?.length > 0) {
                         pinsToSent = resV1.data.data.slice(0, 5).map(p => ({
-                            image: p.hd,
-                            author: p.full_name || "Pinterest"
+                            image: p.hd
                         }))
                     }
                 } catch (e) { console.log("Capa 2 falló...") }
             }
 
-            // --- CAPA 3: Nexy ---
             if (pinsToSent.length === 0) {
-                try {
-                    const { data: resNexy } = await axios.get(`https://api.nexylight.xyz/search/pinterest?q=${encodeURIComponent(text)}`, { timeout: 15000 })
-                    if (resNexy.status && resNexy.data?.length > 0) {
-                        pinsToSent = resNexy.data.slice(0, 5).map(p => ({
-                            image: p.image,
-                            author: p.pinner || "Pinterest"
-                        }))
-                    }
-                } catch (e) { console.log("Capa 3 falló...") }
+                await conn.sendMessage(chat, { react: { text: '❌', key: m.key } })
+                return conn.sendMessage(chat, { text: "❌ No encontré resultados." }, { quoted: m })
             }
 
-            if (pinsToSent.length === 0) {
-                await conn.sendMessage(m.chat, { react: { text: '❌', key: m.key } })
-                return conn.sendMessage(m.chat, { text: "❌ No encontré resultados para esa búsqueda." }, { quoted: m })
-            }
-
-            // --- ENVIAR EL PACK DE 5 ---
+            // --- ENVIAR EL PACK ---
             for (let i = 0; i < pinsToSent.length; i++) {
                 const pin = pinsToSent[i]
-                
-                // Diseño Misa solo en la primera imagen para no spamear texto
-                const caption = i === 0 ? `
-✧ ‧₊˚ *𝙿𝙸𝙽𝚃𝙴𝚁𝙴𝚂𝚃 𝚂𝙴𝙰𝚁𝙲𝙷* ୧ֹ˖ ⑅ ࣪⊹
-⊹₊ ˚‧︵‿₊୨୧₊‿︵‧ ˚ ₊⊹
-› ✰ \`Búsqueda\`: *${text}*
-› ✿ \`Resultados\`: *5 fotos*
+                const caption = i === 0 ? `✧ ‧₊˚ *𝙿𝙸𝙽𝚃𝙴𝚁𝙴𝚂𝚃 𝚂𝙴𝙰𝚁𝙲𝙷* ୧ֹ˖ ⑅ ࣪⊹\n⊹₊ ˚‧︵‿₊୨୧₊‿︵‧ ˚ ₊⊹\n› ✰ \`Búsqueda\`: *${text}*\n\n> Powered by 𝓜𝓲𝓼𝓪 ♡` : ""
 
-> Powered by 𝓜𝓲𝓼𝓪 ♡`.trim() : ""
-
-                await conn.sendMessage(m.chat, { 
+                await conn.sendMessage(chat, { 
                     image: { url: pin.image }, 
                     caption: caption 
                 }, { quoted: m })
+                
+                // Pequeña espera de 1 segundo entre fotos para evitar el error de JID/Relay
+                await new Promise(resolve => setTimeout(resolve, 1000))
             }
 
-            await conn.sendMessage(m.chat, { react: { text: '✅', key: m.key } })
+            await conn.sendMessage(chat, { react: { text: '✅', key: m.key } })
 
         } catch (e) {
             console.error("ERROR PIN:", e)
-            await conn.sendMessage(m.chat, { react: { text: '✖️', key: m.key } })
+            await conn.sendMessage(chat, { react: { text: '✖️', key: m.key } })
         }
     }
 }
 
-export default pinterestMisa
+export default pinterestMisaFixed
