@@ -74,7 +74,7 @@ const playCommand = {
    › ꕤ \`Vistas\`: *${formatViews(v.views)}*
    › ❖ \`Link\`: *${v.url}*
 
-> Powered by 𝓜𝓲𝓼𝓪 ♡`.trim()
+> Powered by *𝓜𝓲𝓼𝓪* ♡`.trim()
 
             await conn.sendMessage(chat, { 
                 text: textoPlay,
