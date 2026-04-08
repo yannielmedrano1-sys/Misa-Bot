@@ -18,27 +18,20 @@ const play2Command = {
         if (!text) return conn.sendMessage(chat, { text: `🖤 *¿Qué video quieres ver?*\n\n> ✐ *Ejemplo:* \`${prefijo + command} Media Hora\`` }, { quoted: m })
 
         try {
-            // 🔍 1. Búsqueda inteligente
             const search = await yts(text)
             const v = search.videos[0]
             if (!v) return conn.sendMessage(chat, { text: '> ✐ No encontré ese video.' }, { quoted: m })
 
             const url = v.url
-            const videoId = v.videoId
             let videoUrl = null
-            let filesize = 0
+            let filesize = 'Variable'
             let calidad = '720p'
 
-            // 🚀 --- ARSENAL DE APIS PARA VIDEO (BACKUP TOTAL) ---
             const apiSources = [
-                // Brayan ytmp4v2
                 { url: `https://api.brayanofc.shop/dl/ytmp4v2?url=${encodeURIComponent(url)}&key=api-gmnch`, path: (d) => d.data?.dl, sizePath: (d) => d.data?.size },
-                // Nexylight (Forzando 720p)
-                { url: `https://api.nexylight.xyz/dl/ytmp4?id=${videoId}&quality=720&key=nexy-9ccbbb`, path: (d) => d.download?.url, sizePath: (d) => d.download?.size },
-                // Brayan youtubev2 (Filtra Mp4 con Sonido)
-                { url: `https://api.brayanofc.shop/dl/youtubev2?url=${encodeURIComponent(url)}&key=api-gmnch`, path: (d) => d.results?.formats.find(f => f.label.includes('With Sound') || f.itag == '18')?.url, sizePath: (d) => d.results?.info?.duration },
-                // Brayan ytdl (Backup)
-                { url: `https://api.brayanofc.shop/dl/ytdl?url=${encodeURIComponent(url)}&type=mp4&key=api-gmnch`, path: (d) => d.result?.download, sizePath: (d) => d.result?.quality }
+                { url: `https://api.nexylight.xyz/dl/ytmp4?id=${v.videoId}&quality=720&key=nexy-9ccbbb`, path: (d) => d.download?.url, sizePath: (d) => d.download?.size },
+                { url: `https://api.brayanofc.shop/dl/youtubev2?url=${encodeURIComponent(url)}&key=api-gmnch`, path: (d) => d.results?.formats.find(f => f.itag == '18' || f.label.includes('With Sound'))?.url, sizePath: (d) => null },
+                { url: `https://api.brayanofc.shop/dl/ytdl?url=${encodeURIComponent(url)}&type=mp4&key=api-gmnch`, path: (d) => d.result?.download, sizePath: (d) => null }
             ]
 
             for (const source of apiSources) {
@@ -47,7 +40,15 @@ const play2Command = {
                     const link = source.path(res.data)
                     if (link) {
                         videoUrl = link
-                        filesize = source.sizePath(res.data) || 'Variable'
+                        const rawSize = source.sizePath(res.data)
+                        // 🛠️ FIX: Solo filtramos si el dato parece un peso real (contiene MB o GB)
+                        if (rawSize && (rawSize.includes('MB') || rawSize.includes('GB'))) {
+                            filesize = rawSize
+                            const sizeNum = parseFloat(rawSize.replace(/[^0-9.]/g, ''))
+                            if (rawSize.includes('GB') || sizeNum > 150) {
+                                return conn.sendMessage(chat, { text: `⚠️ *Demasiado pesado*\n\n> ✿ El video pesa *${rawSize}* y el límite es de 150MB. 🖤` }, { quoted: m })
+                            }
+                        }
                         break 
                     }
                 } catch { continue }
@@ -55,26 +56,17 @@ const play2Command = {
 
             if (!videoUrl) throw new Error()
 
-            // 🛡️ FILTRO DE MB PARA VIDEO (Límite 150MB para no saturar)
-            const sizeInMB = parseFloat(filesize)
-            if (sizeInMB > 150) {
-                return conn.sendMessage(chat, { 
-                    text: `⚠️ *Video demasiado pesado*\n\n> ✿ El archivo pesa *${filesize}*, el límite para videos en Misa es de 150MB. ¡Busca uno más ligero! 🖤` 
-                }, { quoted: m })
-            }
-
             const formatViews = (n) => {
                 if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M'
                 if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K'
                 return n.toLocaleString()
             }
 
-            // 📤 INFO DEL VIDEO (TU DISEÑO ORIGINAL)
             const textoPlay = `✧ ‧₊˚ *YOUTUBE VIDEO* ୧ֹ˖ ⑅ ࣪⊹
 ⊹₊ ˚‧︵‿₊୨୧₊‿︵‧ ˚ ₊⊹
 ✰ Título: ${v.title}
    › ✦ \`Peso\`: *${filesize}*
-   › ⏱ \`Duración\`: *${v.timestamp || v.duration}*
+   › ⏱ \`Duración\`: *${v.timestamp}*
    › ꕤ \`Vistas\`: *${formatViews(v.views)}*
    › ❖ \`Link\`: *${v.url}*
 
@@ -94,7 +86,6 @@ const play2Command = {
                 }
             }, { quoted: m })
 
-            // 🎥 ENVÍO DEL VIDEO
             return await conn.sendMessage(chat, { 
                 video: { url: videoUrl },
                 caption: `> 🖤 *${v.title}*`,
@@ -103,7 +94,7 @@ const play2Command = {
             }, { quoted: m })
 
         } catch (err) {
-            return conn.sendMessage(chat, { text: '> ✐ Misa no pudo procesar el video. Puede que sea muy pesado o las fuentes estén caídas.' }, { quoted: m })
+            return conn.sendMessage(chat, { text: '> ✐ Error al obtener el video. Reintenta.' }, { quoted: m })
         }
     }
 }
