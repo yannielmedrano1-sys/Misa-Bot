@@ -1,4 +1,3 @@
-
 import fetch from 'node-fetch'
 
 const tiktokCommand = {
@@ -6,59 +5,70 @@ const tiktokCommand = {
     alias: ['tt', 'tts'],
     category: 'downloader',
     noPrefix: true,
-    isOwner: false,
-    isAdmin: false,
-    isGroup: false,
 
     run: async (conn, m, { text, command }) => {
         const chat = m.key.remoteJid
-
-        if (!text) {
-            return conn.sendMessage(chat, {
-                text: ` *¿Qué quieres buscar o descargar?*\n\n*Ejemplo:*\n\`${command} gatos\`\n\`${command} https://tiktok.com/... \``
-            }, { quoted: m })
-        }
+        if (!text) return conn.sendMessage(chat, { text: `› ✐  *¿Qué quieres buscar?*\n\n*Ejemplo:*\n\`${command} https://tiktok.com/... \`` }, { quoted: m })
 
         const isUrl = text.includes('tiktok.com')
+        
+        // 🔥 SISTEMA DE APIS ( BrayanOFC como Principal )
+        const apis = [
+            `https://api.brayanofc.shop/dl/tiktok?url=${encodeURIComponent(text)}&key=api-gmnch`,
+            `https://api.stellarwa.xyz/dl/tiktok?url=${encodeURIComponent(text)}&key=YukiWaBot`,
+            `https://api.tiklydown.eu.org/api/download?url=${encodeURIComponent(text)}`
+        ]
 
-        const endpoint = isUrl
-            ? `https://api.stellarwa.xyz/dl/tiktok?url=${encodeURIComponent(text)}&key=YukiWaBot`
-            : `https://api.stellarwa.xyz/search/tiktok?query=${encodeURIComponent(text)}&key=YukiWaBot`
+        await conn.sendMessage(chat, { react: { text: '⏳', key: m.key } })
+
+        let data = null
+        let success = false
+
+        for (const api of apis) {
+            try {
+                const res = await fetch(api)
+                const json = await res.json()
+                
+                if (json.status && json.data) {
+                    data = json.data
+                    success = true
+                    break 
+                }
+            } catch (err) {
+                continue 
+            }
+        }
+
+        if (!success || !data) {
+            return conn.sendMessage(chat, { text: '› ✐  *Error:* No se pudo obtener el contenido. ✧' }, { quoted: m })
+        }
 
         try {
-            await conn.sendMessage(chat, { react: { text: '⏳', key: m.key } })
-
-            const res = await fetch(endpoint)
-            const json = await res.json()
-
-            if (!json.status || !json.data) {
-                return conn.sendMessage(chat, {
-                    text: '› ✐  *Error:* No se encontró contenido multimedia. ✧'
-                }, { quoted: m })
-            }
-
-            const v = isUrl ? json.data : json.data[0]
+            const v = isUrl ? data : (Array.isArray(data) ? data[0] : data)
             
+            // 🛠️ MAPEADO ESPECÍFICO PARA LA API DE BRAYAN + FALLBACKS
+            const vistasReales = v.stats?.plays || v.stats?.playCount || v.views || 0
+            const likesReales = v.stats?.likes || v.stats?.likeCount || v.like || 0
+            const commentsReales = v.stats?.comments || v.stats?.commentCount || v.comment || 0
+
             const formatNr = (num) => {
-                if (!num) return '0'
+                if (!num || num === 0) return '0'
                 return new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 }).format(num)
             }
 
-            // Aplicando tu nueva estética personalizada
             const caption = `
 ✧ ‧₊˚ *TIKTOK DOWNLOADER* ୧ֹ˖ ⑅ ࣪⊹
 ⊹₊ ˚‧︵‿₊୨୧₊‿︵‧ ˚ ₊⊹
 ✰ Título: *${v.title || "TikTok Video"}*
    › ✿ \`Autor\`: *${v.author?.nickname || v.nickname || "Anónimo"}*
-   › ✦ \`Likes\`: *${formatNr(v.stats?.likeCount || v.like)}*
-   › ꕤ \`Vistas\`: *${formatNr(v.stats?.playCount || v.views)}*
-   › ❖ \`Coments\`: *${formatNr(v.stats?.commentCount || v.comment)}*
+   › ✦ \`Likes\`: *${formatNr(likesReales)}*
+   › ꕤ \`Vistas\`: *${formatNr(vistasReales)}*
+   › ❖ \`Coments\`: *${formatNr(commentsReales)}*
 
 > Powered by 𝓜𝓲𝓼𝓪 ♡`.trim()
 
-            const videoUrl = isUrl 
-                ? (Array.isArray(v.dl) ? v.dl[0] : v.dl)
-                : v.dl
+            // Priorizamos el link de descarga de la API de Brayan
+            const videoUrl = v.dl || v.video || v.url
 
             await conn.sendMessage(chat, {
                 video: { url: videoUrl },
@@ -68,10 +78,8 @@ const tiktokCommand = {
             await conn.sendMessage(chat, { react: { text: '✅', key: m.key } })
 
         } catch (e) {
-            console.error("TT ERROR:", e)
-            await conn.sendMessage(chat, {
-                text: '> ✐  *Error:* No se pudo procesar el TikTok. ✧'
-            }, { quoted: m })
+            console.error(e)
+            await conn.sendMessage(chat, { text: '› ✐  *Error:* Fallo al enviar el video. ✧' }, { quoted: m })
         }
     }
 }
