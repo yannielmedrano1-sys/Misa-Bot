@@ -90,7 +90,7 @@ const stickerCommand = {
             }
 
             const sticker = new Sticker(finalBuffer, {
-                pack: '𝓜𝓲𝓼α 𝘽𝙊𝙏 🖤',
+                pack: '𝓜𝓲𝓼𝓪  𝘽𝙊𝙏 🖤',
                 author: 'Yanniel',
                 type: StickerTypes.FULL,
                 quality: 80
