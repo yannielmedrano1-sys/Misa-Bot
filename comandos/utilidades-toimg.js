@@ -1,61 +1,68 @@
-import fs from 'fs';
-import { tmpdir } from 'os';
-import Crypto from 'crypto';
-import path from 'path';
 import fetch from 'node-fetch';
 import FormData from 'form-data';
 import * as cheerio from 'cheerio';
 
-// Funciones de conversión usando EzGif
+// --- FUNCIONES DE CONVERSIÓN OPTIMIZADAS ---
+
 async function webp2mp4(source) {
     let form = new FormData();
-    let isUrl = typeof source === 'string' && /https?:\/\//.test(source);
-    form.append('new-image-url', isUrl ? source : '');
-    form.append('new-image', source, 'image.webp');  
-    let res = await fetch('https://ezgif.com/webp-to-mp4', { method: 'POST', body: form });  
+    form.append('new-image', source, 'image.webp');
+    form.append('new-image-url', '');
+    
+    // Paso 1: Subir el archivo
+    let res = await fetch('https://ezgif.com/webp-to-mp4', { method: 'POST', body: form });
     let html = await res.text();
-    const $ = cheerio.load(html);
+    let $ = cheerio.load(html);
+    
+    let file = $('input[name="file"]').val();
+    if (!file) throw new Error("No se pudo procesar el archivo en EzGif (MP4)");
+
     let form2 = new FormData();
-    let obj = {};  
-    $('form input[name]').each((i, input) => {
-        const name = $(input).attr('name');
-        const value = $(input).val();
-        obj[name] = value;
-        form2.append(name, value);
-    });
-    let res2 = await fetch('https://ezgif.com/webp-to-mp4/' + obj.file, { method: 'POST', body: form2 });  
+    form2.append('file', file);
+    form2.append('convert', 'Convert WebP to MP4!');
+    
+    // Paso 2: Convertir
+    let res2 = await fetch('https://ezgif.com/webp-to-mp4/' + file, { method: 'POST', body: form2 });
     let html2 = await res2.text();
-    const $2 = cheerio.load(html2);
-    const videoUrl = new URL($2('div#output > p.outfile > video > source').attr('src'), res2.url).toString();  
+    let $2 = cheerio.load(html2);
+    
+    let videoUrl = 'https:' + $2('div#output > p.outfile > video > source').attr('src');
+    if (!videoUrl || videoUrl.includes('undefined')) throw new Error("URL de video no encontrada");
+
     let videoRes = await fetch(videoUrl);
-    let videoBuffer = await videoRes.buffer();
-    return videoBuffer;
+    return await videoRes.buffer();
 }
 
 async function webp2png(source) {
     let form = new FormData();
-    let isUrl = typeof source === 'string' && /https?:\/\//.test(source);
-    form.append('new-image-url', isUrl ? source : '');
-    form.append('new-image', source, 'image.webp');  
-    let res = await fetch('https://ezgif.com/webp-to-png', { method: 'POST', body: form });  
+    form.append('new-image', source, 'image.webp');
+    form.append('new-image-url', '');
+    
+    // Paso 1: Subir
+    let res = await fetch('https://ezgif.com/webp-to-png', { method: 'POST', body: form });
     let html = await res.text();
-    const $ = cheerio.load(html);
+    let $ = cheerio.load(html);
+    
+    let file = $('input[name="file"]').val();
+    if (!file) throw new Error("No se pudo procesar el archivo en EzGif (PNG)");
+
     let form2 = new FormData();
-    let obj = {};  
-    $('form input[name]').each((i, input) => {
-        const name = $(input).attr('name');
-        const value = $(input).val();
-        obj[name] = value;
-        form2.append(name, value);
-    });
-    let res2 = await fetch('https://ezgif.com/webp-to-png/' + obj.file, { method: 'POST', body: form2 });  
+    form2.append('file', file);
+    form2.append('convert', 'Convert WebP to PNG!');
+    
+    // Paso 2: Convertir
+    let res2 = await fetch('https://ezgif.com/webp-to-png/' + file, { method: 'POST', body: form2 });
     let html2 = await res2.text();
-    const $2 = cheerio.load(html2);
-    const imgUrl = new URL($2('div#output > p.outfile > img').attr('src'), res2.url).toString();  
+    let $2 = cheerio.load(html2);
+    
+    let imgUrl = 'https:' + $2('div#output > p.outfile > img').attr('src');
+    if (!imgUrl || imgUrl.includes('undefined')) throw new Error("URL de imagen no encontrada");
+
     let imgRes = await fetch(imgUrl);
-    let imgBuffer = await imgRes.buffer();
-    return imgBuffer;
+    return await imgRes.buffer();
 }
+
+// --- COMANDO MISA BOT ---
 
 const toImageMisa = {
     name: 'toimg',
@@ -63,28 +70,30 @@ const toImageMisa = {
     category: 'tools',
     noPrefix: true,
 
-    run: async (conn, m, { text, command }) => {
+    run: async (conn, m) => {
         const chat = m.key.remoteJid;
         const q = m.quoted ? m.quoted : m;
         const mime = (q.msg || q).mimetype || '';
 
-        if (!/webp/.test(mime)) return conn.sendMessage(chat, { 
-            text: `> ✐  *Debes citar un sticker para convertirlo a imagen o video.* ✧` 
-        }, { quoted: m });
+        if (!/webp/.test(mime)) {
+            return conn.sendMessage(chat, { 
+                text: `> ✐  *Debes citar un sticker para convertirlo.* ✧` 
+            }, { quoted: m });
+        }
 
         try {
             await conn.sendMessage(chat, { react: { text: '🕒', key: m.key } });
 
             const buffer = await q.download();
-            if (!buffer) throw new Error('No se pudo descargar el sticker');
+            if (!buffer) throw new Error('Error al descargar el sticker desde WhatsApp');
 
             const isAnimated = q.isAnimated || (q.msg && q.msg.isAnimated);
 
             if (isAnimated) {
-                // Conversión a MP4 (GIF)
+                // PROCESO MP4
                 const mp4Buffer = await webp2mp4(buffer);
                 const caption = `
-ʚ 𝓜𝓲𝓼𝓪 𝓒𝓸𝓷𝓿𝓮𝓻𝓽𝓮𝓻 ɞ
+ʚ 𝐌𝐢𝐬𝐚 𝐂𝐨𝐧𝐯𝐞𝐫𝐭𝐞𝐫 ɞ
 ⊹₊ ˚‧︵‿₊୨୧₊‿︵‧ ˚ ₊⊹
 
 ✰ *Tipo:* Sticker Animado ➔ Video/Gif
@@ -99,10 +108,10 @@ const toImageMisa = {
                 }, { quoted: m });
 
             } else {
-                // Conversión a PNG
+                // PROCESO PNG
                 const pngBuffer = await webp2png(buffer);
                 const caption = `
-ʚ 𝓜𝓲𝓼𝓪 𝓒𝓸𝓷𝓿𝓮𝓻𝓽𝓮𝓻 ɞ
+ʚ 𝐌𝐢𝐬𝐚 𝐂𝐨𝐧𝐯𝐞𝐫𝐭𝐞𝐫 ɞ
 ⊹₊ ˚‧︵‿₊୨୧₊‿︵‧ ˚ ₊⊹
 
 ✰ *Tipo:* Sticker Estático ➔ Imagen
@@ -119,10 +128,10 @@ const toImageMisa = {
             await conn.sendMessage(chat, { react: { text: '✅', key: m.key } });
 
         } catch (e) {
-            console.error("ERROR EN TOIMG 𝓜𝓲𝓼𝓪:", e);
+            console.error("ERROR TOIMG MISA:", e);
             await conn.sendMessage(chat, { react: { text: '✖️', key: m.key } });
             await conn.sendMessage(chat, { 
-                text: `> ✐  *Error al convertir el sticker.*\n> [Error: *${e.message}*]` 
+                text: `> ✐  *Error:* No pude convertir el sticker.\n> *Nota:* EzGif puede estar lento o el archivo es muy pesado.` 
             }, { quoted: m });
         }
     }
