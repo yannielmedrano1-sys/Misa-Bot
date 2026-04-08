@@ -11,11 +11,14 @@ const inspectMisaFinal = {
         if (!text) return conn.sendMessage(chat, { text: `> ✐  *Por favor, ingrese el enlace de un grupo, comunidad o canal.* ✧` }, { quoted: m })
 
         const channelUrl = text?.match(/(?:https:\/\/)?(?:www\.)?(?:chat\.|wa\.)?whatsapp\.com\/(?:channel\/|joinchat\/)?([0-9A-Za-z]{22,24})/i)?.[1]
-        const settings = global.db.data?.settings?.[conn.user.id.split(':')[0] + '@s.whatsapp.net']
-        let thumb = settings?.icon || 'https://qu.ax/ZpYm.jpg' 
+        
+        // --- FIX DEL ERROR 'DATA' ---
+        // Usamos encadenamiento opcional (?.) para que si no existe, no explote
+        const settings = global.db?.data?.settings?.[conn.user.id.split(':')[0] + '@s.whatsapp.net']
+        let thumb = settings?.icon || 'https://qu.ax/ZpYm.jpg' // Imagen por defecto si no hay data
+        
         let pp, info, res, inviteInfo, inviteCode
 
-        // --- LÓGICA DE FORMATEO NATIVO (REEMPLAZA A LODASH) ---
         const formatKey = (key) => {
             return key.replace(/_/g, ' ')
                 .replace(/\b\w/g, l => l.toUpperCase())
@@ -52,7 +55,7 @@ const inspectMisaFinal = {
                     info = `ʚ 𝐌𝐢𝐬𝐚 𝐈𝐧𝐯𝐢𝐭𝐞 𝐈𝐧𝐬𝐩𝐞𝐜𝐭 ɞ\n⊹₊ ˚‧\n🆔 *ID:* ${inviteInfo.id}\n🏷️ *Nombre:* ${inviteInfo.subject}\n👥 *Miembros:* ${inviteInfo.size}\n\n> Powered by 𝓜𝓲𝓼𝓪 ♡`.trim()
                     pp = await conn.profilePictureUrl(inviteInfo.id, 'image').catch(() => null)
                 } catch (e) {
-                    return conn.sendMessage(chat, { text: '> ✐  *Error:* Enlace no válido.' }, { quoted: m })
+                    return conn.sendMessage(chat, { text: '> ✐  *Error:* Enlace no válido o grupo privado.' }, { quoted: m })
                 }
             }
         }
@@ -63,8 +66,10 @@ const inspectMisaFinal = {
                 contextInfo: {
                     externalAdReply: {
                         title: "𝐌𝐢𝐬𝐚 𝐆𝐫𝐨𝐮𝐩 𝐈𝐧𝐬𝐩𝐞𝐜𝐭𝐨𝐫",
+                        body: "Análisis completado ✧",
                         thumbnailUrl: pp || thumb,
-                        mediaType: 1
+                        mediaType: 1,
+                        showAdAttribution: false
                     }
                 }
             }, { quoted: m })
