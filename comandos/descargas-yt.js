@@ -1,4 +1,4 @@
-/* Código creado por Yanniel, y optimizado por el brother mio 
+/* Código creado por Yanniel, y optimizado By ABRAHAN-M (el brother mio <3)
 por favor y no quites los créditos.
 https://github.com/yannielmedrano1-sys
 */
