@@ -12,16 +12,24 @@ export const pixelHandler = async (conn, m, config) => {
         const chat = m.key.remoteJid;
         if (chat === 'status@broadcast') return;
 
+        // --- 🛡️ DECODE JID SEGURO (ANTI-CRASH) ---
         const decodeJid = (jid) => {
             if (!jid) return jid;
-            if (/:\d+@/gi.test(jid)) {
-                let decode = jidDecode(jid) || {};
-                return decode.user && decode.server && decode.user + '@' + decode.server || jid;
-            } else return jid;
+            try {
+                if (/:\d+@/gi.test(jid)) {
+                    const decode = jidDecode(jid);
+                    // Usamos encadenamiento opcional ?. para evitar el error de "undefined"
+                    return (decode?.user && decode?.server) ? `${decode.user}@${decode.server}` : jid;
+                }
+                return jid;
+            } catch (e) {
+                return jid;
+            }
         };
 
         const sender = decodeJid(m.key.participant || m.key.remoteJid || m.sender || '');
-        const botNumber = decodeJid(conn.user.id); // Limpiamos la ID del bot
+        // Agregamos ?. para que si conn.user no existe en el microsegundo de arranque, no crashee
+        const botNumber = conn.user?.id ? decodeJid(conn.user.id) : ''; 
 
         const misIdentidades = [
             '125860308893859@lid',
@@ -45,9 +53,8 @@ export const pixelHandler = async (conn, m, config) => {
         const usedPrefix = allPrefixes.find(p => body.startsWith(p));
 
         // 🧠 --- LÓGICA DE CONVERSACIÓN CONTINUA (REPLY) ---
-        // Obtenemos quién es el dueño del mensaje al que estamos respondiendo
         const quotedParticipant = m.message?.extendedTextMessage?.contextInfo?.participant;
-        const isReplyToBot = decodeJid(quotedParticipant) === botNumber;
+        const isReplyToBot = botNumber && decodeJid(quotedParticipant) === botNumber;
 
         if (!usedPrefix && isReplyToBot && body) {
             const aiCmd = global.commands.get('ia');
@@ -66,7 +73,7 @@ export const pixelHandler = async (conn, m, config) => {
             }
         }
 
-        // --- MURO DE PRIVADO (Después del reply para no bloquear la IA) ---
+        // --- MURO DE PRIVADO ---
         if (!isGroup && !isOwner && !isReplyToBot) {
             if (body.toLowerCase() !== 'code') return; 
         }
@@ -82,6 +89,9 @@ export const pixelHandler = async (conn, m, config) => {
                     Array.from(global.commands.values()).find(c => c.alias && c.alias.includes(commandName));
 
         if (cmd) {
+            // --- 🛡️ PROTECCIÓN DE GRUPOS BANEADOS (OFF) ---
+            if (isGroup && global.db?.data?.chats?.[chat]?.isBanned && !isOwner) return;
+
             if (!usedPrefix && !cmd.noPrefix) return;
 
             if (cmd.isOwner && !isOwner) {
