@@ -1,131 +1,111 @@
-/* Código creado por Yanniel
+/* Código creado por Yanniel, y optimizado By ABRAHAN-M (el brother mio <3)
 por favor y no quites los créditos.
 https://github.com/yannielmedrano1-sys
 */
-
-import axios from 'axios';
-import { config } from '../config.js';
+import axios from 'axios'
+import yts from 'yt-search'
 
 const play2Command = {
     name: 'play2',
     alias: ['video', 'ytmp4', 'vid'],
     category: 'downloader',
-    isOwner: false,
-    noPrefix: true, 
-    isAdmin: false,
-    isGroup: false,
+    noPrefix: true,
 
     run: async (conn, m, { text, usedPrefix, command }) => {
-        const chat = m.key.remoteJid;
-        const prefijo = usedPrefix ? usedPrefix : '';
+        const chat = m.key.remoteJid
+        const prefijo = usedPrefix || ''
 
-        if (!text) {
-            return conn.sendMessage(chat, { text: `🖤 *¿Qué video quieres descargar?*\n\nEjemplo: \`${prefijo + command} Media Hora Yan Block\`` }, { quoted: m });
-        }
+        if (!text) return conn.sendMessage(chat, { text: `🖤 *¿Qué video quieres ver?*\n\n> ✐ *Ejemplo:* \`${prefijo + command} Media Hora\`` }, { quoted: m })
 
         try {
-            await conn.sendMessage(chat, { react: { text: '⏳', key: m.key } });
+            // 🔍 1. Búsqueda inteligente
+            const search = await yts(text)
+            const v = search.videos[0]
+            if (!v) return conn.sendMessage(chat, { text: '> ✐ No encontré ese video.' }, { quoted: m })
 
-            // --- 1. DATA Y LINKS (3 APIS REALES - OPTIMIZADO) ---
-            const search = await axios.get(`https://api.brayanofc.shop/dl/youtubeplay?query=${encodeURIComponent(text)}&key=api-gmnch`);
-            const v = search.data.data;
-            const ytUrl = v.url;
-            const vidId = v.videoId;
+            const url = v.url
+            const videoId = v.videoId
+            let videoUrl = null
+            let filesize = 0
+            let calidad = '720p'
 
-            let videoUrl, vistasReales = v.views, calidad = '720p';
+            // 🚀 --- ARSENAL DE APIS PARA VIDEO (BACKUP TOTAL) ---
+            const apiSources = [
+                // Brayan ytmp4v2
+                { url: `https://api.brayanofc.shop/dl/ytmp4v2?url=${encodeURIComponent(url)}&key=api-gmnch`, path: (d) => d.data?.dl, sizePath: (d) => d.data?.size },
+                // Nexylight (Forzando 720p)
+                { url: `https://api.nexylight.xyz/dl/ytmp4?id=${videoId}&quality=720&key=nexy-9ccbbb`, path: (d) => d.download?.url, sizePath: (d) => d.download?.size },
+                // Brayan youtubev2 (Filtra Mp4 con Sonido)
+                { url: `https://api.brayanofc.shop/dl/youtubev2?url=${encodeURIComponent(url)}&key=api-gmnch`, path: (d) => d.results?.formats.find(f => f.label.includes('With Sound') || f.itag == '18')?.url, sizePath: (d) => d.results?.info?.duration },
+                // Brayan ytdl (Backup)
+                { url: `https://api.brayanofc.shop/dl/ytdl?url=${encodeURIComponent(url)}&type=mp4&key=api-gmnch`, path: (d) => d.result?.download, sizePath: (d) => d.result?.quality }
+            ]
 
-            // Ejecución directa de las 3 APIs fijas
-            try {
-                // API 1: Brayan v2 (1080p/720p)
-                const res1 = await axios.get(`https://api.brayanofc.shop/dl/ytmp4v2?url=${encodeURIComponent(ytUrl)}&quality=720&key=api-gmnch`);
-                videoUrl = res1.data.data.dl;
-            } catch {
+            for (const source of apiSources) {
                 try {
-                    // API 2: NexyLight (La más estable por ID)
-                    const res2 = await axios.get(`https://api.nexylight.xyz/dl/ytmp4?id=${vidId}&quality=720&key=nexy-9ccbbb`);
-                    videoUrl = res2.data.download.url;
-                    vistasReales = res2.data.data.views;
-                } catch {
-                    // API 3: Brayan v1 (Fallback final)
-                    const res3 = await axios.get(`https://api.brayanofc.shop/dl/ytmp4?url=${encodeURIComponent(ytUrl)}&key=api-gmnch`);
-                    videoUrl = res3.data.result.downloadUrl;
-                    calidad = '360p/480p';
-                }
+                    const res = await axios.get(source.url, { timeout: 5000 })
+                    const link = source.path(res.data)
+                    if (link) {
+                        videoUrl = link
+                        filesize = source.sizePath(res.data) || 'Variable'
+                        break 
+                    }
+                } catch { continue }
             }
 
-            // --- 2. ANIMACIÓN REFINADA (Más rápida: 25ms) ---
-            const { key } = await conn.sendMessage(chat, { text: '📥 *Descargando Video:* `1%` ▒▒▒▒▒▒▒▒▒▒' });
+            if (!videoUrl) throw new Error()
 
-            const getBar = (p) => {
-                const filled = Math.floor(p / 10);
-                return '█'.repeat(filled) + '▒'.repeat(10 - filled);
-            };
-
-            for (let i = 1; i <= 100; i += 5) { 
-                let valor = i > 100 ? 100 : i;
-                await new Promise(resolve => setTimeout(resolve, 25)); // Bajamos de 35ms a 25ms
-                await conn.sendMessage(chat, { 
-                    text: `📥 *Descargando Video:* \`${valor}%\` ${getBar(valor)}`, 
-                    edit: key 
-                });
+            // 🛡️ FILTRO DE MB PARA VIDEO (Límite 150MB para no saturar)
+            const sizeInMB = parseFloat(filesize)
+            if (sizeInMB > 150) {
+                return conn.sendMessage(chat, { 
+                    text: `⚠️ *Video demasiado pesado*\n\n> ✿ El archivo pesa *${filesize}*, el límite para videos en Misa es de 150MB. ¡Busca uno más ligero! 🖤` 
+                }, { quoted: m })
             }
 
-           // 3. FORMATEO DE VISTAS (FIXED)
-            const formatViews = (views) => {
-                if (!views) return "0";
-                let str = views.toString().toLowerCase();
-                // Si ya trae B, M o K, lo dejamos limpio
-                if (/[kmb]/.test(str)) return str.replace(/[^0-9.kmb]/g, '').toUpperCase();
-                
-                let n = parseInt(str.replace(/\D/g, '')) || 0;
-                if (n >= 1000000000) return (n / 1000000000).toFixed(1) + 'B';
-                if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
-                if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
-                return n.toLocaleString(); 
-            };
+            const formatViews = (n) => {
+                if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M'
+                if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K'
+                return n.toLocaleString()
+            }
 
-            await conn.sendMessage(chat, { react: { text: '✅', key: m.key } });
-
-            const textoPlay2 = `✧ ‧₊˚ *YOUTUBE VIDEO* ୧ֹ˖ ⑅ ࣪⊹
+            // 📤 INFO DEL VIDEO (TU DISEÑO ORIGINAL)
+            const textoPlay = `✧ ‧₊˚ *YOUTUBE VIDEO* ୧ֹ˖ ⑅ ࣪⊹
 ⊹₊ ˚‧︵‿₊୨୧₊‿︵‧ ˚ ₊⊹
 ✰ Título: ${v.title}
-   › ✦ \`Calidad\`: *${calidad}*
-   › ⏱ \`Duración\`: *${v.duration}*
-   › ꕤ \`Vistas\`: *${formatViews(vistasReales)}*
+   › ✦ \`Peso\`: *${filesize}*
+   › ⏱ \`Duración\`: *${v.timestamp || v.duration}*
+   › ꕤ \`Vistas\`: *${formatViews(v.views)}*
    › ❖ \`Link\`: *${v.url}*
 
-> Powered by 𝓜𝓲𝓼𝓪 ♡`.trim();
+> Powered by 𝓜𝓲𝓼α ♡`.trim()
 
-            // Envío en paralelo para ganar velocidad
-            await Promise.all([
-                conn.sendMessage(chat, { 
-                    text: textoPlay2,
-                    contextInfo: {
-                        externalAdReply: {
-                            title: v.title,
-                            body: '𝓜𝓲𝓼𝓪 𝘿𝙤𝙬𝙣𝙡𝙤𝙖𝙙er 🖤',
-                            thumbnailUrl: v.image, 
-                            sourceUrl: v.url,
-                            mediaType: 1,
-                            renderLargerThumbnail: true, 
-                            showAdAttribution: false 
-                        }
+            await conn.sendMessage(chat, { 
+                text: textoPlay,
+                contextInfo: {
+                    externalAdReply: {
+                        title: v.title,
+                        body: '𝓜𝓲𝓼α 𝘿𝙤𝙬𝙣𝙡𝙤𝙖𝙙𝙚𝙧 🖤',
+                        thumbnailUrl: v.image,
+                        sourceUrl: url,
+                        mediaType: 1,
+                        renderLargerThumbnail: true
                     }
-                }, { quoted: m }),
-                conn.sendMessage(chat, { 
-                    video: { url: videoUrl }, 
-                    caption: `🖤 *${v.title}*`,
-                    mimetype: 'video/mp4'
-                }, { quoted: m })
-            ]);
+                }
+            }, { quoted: m })
 
-            await conn.sendMessage(chat, { text: '🖤 *Video enviado con éxito :)*', edit: key });
+            // 🎥 ENVÍO DEL VIDEO
+            return await conn.sendMessage(chat, { 
+                video: { url: videoUrl },
+                caption: `> 🖤 *${v.title}*`,
+                mimetype: 'video/mp4',
+                fileName: `${v.title}.mp4`
+            }, { quoted: m })
 
         } catch (err) {
-            console.error(err);
-            await conn.sendMessage(chat, { text: '> ✐ error crítico, intenta de nuevo.' }, { quoted: m });
+            return conn.sendMessage(chat, { text: '> ✐ Misa no pudo procesar el video. Puede que sea muy pesado o las fuentes estén caídas.' }, { quoted: m })
         }
     }
-};
+}
 
-export default play2Command;
+export default play2Command
