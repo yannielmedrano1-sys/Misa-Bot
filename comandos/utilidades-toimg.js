@@ -3,6 +3,7 @@ import pino from 'pino'
 
 /**
  * ꕤ ━━━━━━━━━━ TO IMAGE - 𝓜𝓲𝓼𝓪 𝓑𝓸𝓽 ━━━━━━━━━━ ꕤ
+ * Versión con Detección Profunda para Yanniel
  */
 
 const toImageMisa = {
@@ -14,32 +15,32 @@ const toImageMisa = {
     run: async (conn, m) => {
         const chat = m.key.remoteJid || m.chat
         
-        // --- VALIDACIÓN DE MENSAJE CITADO ---
-        const quoted = m.quoted ? m.quoted : (m.msg?.contextInfo?.quotedMessage ? m.msg.contextInfo.quotedMessage : null)
+        // --- DETECTOR ULTRA-SENSIBLE ---
+        // Intentamos obtener el mensaje citado de todas las rutas posibles en el JSON de Baileys
+        let quoted = m.quoted ? m.quoted : (m.msg?.contextInfo?.quotedMessage ? m.msg.contextInfo.quotedMessage : null)
         
-        if (!quoted) {
-            return conn.sendMessage(chat, { 
-                text: `> ✐  *Misa necesita que respondas a un sticker.* ✧` 
-            }, { quoted: m })
-        }
+        // Si el quoted es el mensaje completo, extraemos solo el contenido del mensaje
+        let messageContent = quoted?.message ? quoted.message : quoted
 
-        // Detectamos el tipo de contenido citado
-        const quotedType = getContentType(quoted)
+        // Buscamos específicamente el stickerMessage
+        let stickerMsg = messageContent?.stickerMessage || m.msg?.stickerMessage
         
-        // Solo permitimos stickerMessage o imageMessage
-        if (quotedType !== "stickerMessage" && quotedType !== "imageMessage") {
+        // Si no hay sticker, buscamos si es una imagen
+        let imageMsg = messageContent?.imageMessage || m.msg?.imageMessage
+
+        if (!stickerMsg && !imageMsg) {
             return conn.sendMessage(chat, { 
-                text: `> ✐  *Eso no es un sticker, Light-kun.* ✧` 
+                text: `> ✐  *Misa necesita que respondas a un sticker.* ✧\n> *Asegúrate de que el sticker cargue bien antes de responder.*` 
             }, { quoted: m })
         }
 
         try {
             await conn.sendMessage(chat, { react: { text: '⏳', key: m.key } })
 
-            // --- DESCARGA DEL BUFFER ---
-            // Usamos la estructura simplificada para que Baileys no se confunda de participante
+            // --- DESCARGA SEGURO ---
+            // Reconstruimos el objeto para que la función de descarga no se pierda
             const buffer = await downloadMediaMessage(
-                { message: quoted },
+                { message: messageContent },
                 'buffer',
                 {},
                 { 
@@ -48,9 +49,8 @@ const toImageMisa = {
                 }
             )
 
-            if (!buffer) throw new Error("No se pudo generar el buffer")
+            if (!buffer) throw new Error("Buffer vacío")
 
-            // --- DISEÑO FINAL MISA ---
             const caption = `
 ✧ ‧₊˚ *𝚂𝚃𝙸𝙲𝙺𝙴𝚁 𝚃𝙾 𝙸𝙼𝙶* ୧ֹ˖ ⑅ ࣪⊹
 ⊹₊ ˚‧︵‿₊୨୧₊‿︵‧ ˚ ₊⊹
@@ -71,7 +71,7 @@ const toImageMisa = {
             console.error("ERROR TOIMG MISA:", err)
             await conn.sendMessage(chat, { react: { text: '❌', key: m.key } })
             await conn.sendMessage(chat, { 
-                text: `> ✐  *Error:* No pude procesar el archivo.\n> *Nota:* Si es un sticker animado, usa el comando de video.` 
+                text: `> ✐  *Error:* No pude extraer la imagen.\n> *Nota:* Intenta reenviar el sticker y responderle de nuevo.` 
             }, { quoted: m })
         }
     }
