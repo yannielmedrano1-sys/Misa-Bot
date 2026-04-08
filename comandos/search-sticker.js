@@ -2,7 +2,7 @@ import fetch from 'node-fetch'
 
 const stickerlyMisaFinal = {
     name: 'stickerly',
-    alias: ['sly', 'pack', 'getpack'],
+    alias: ['sly', 'pack'],
     category: 'stickers',
     noPrefix: true,
 
@@ -14,7 +14,7 @@ const stickerlyMisaFinal = {
         try {
             await conn.sendMessage(chat, { react: { text: '📦', key: m.key } })
 
-            // 1. Buscamos el pack para obtener la URL
+            // 1. Buscamos el paquete con Brayan (es más rápido buscando)
             const searchRes = await fetch(`https://api.brayanofc.shop/stickerly/search?query=${encodeURIComponent(text)}&key=api-gmnch`)
             const searchJson = await searchRes.json()
 
@@ -24,54 +24,52 @@ const stickerlyMisaFinal = {
 
             const packUrl = searchJson.resultados[0].url
 
-            // 2. Usamos Sylphy para la info (que es más detallada)
+            // 2. EXTRAEMOS LA INFO CON SYLPHY (El JSON que te gustó)
             const sylphyRes = await fetch(`https://sylphy.xyz/download/stickerly?url=${encodeURIComponent(packUrl)}&api_key=sylphy-zkacFeJ`)
             const sylphyJson = await sylphyRes.json()
 
-            // 3. Usamos Brayan Detail para el LINK DE DESCARGA (más estable para archivos)
+            // 3. OBTENEMOS EL ARCHIVO CON BRAYAN DETAIL (Evita el 404)
             const detailRes = await fetch(`https://api.brayanofc.shop/stickerly/detail?url=${encodeURIComponent(packUrl)}&key=api-gmnch`)
             const detailJson = await detailRes.json()
 
-            if (!sylphyJson.status && !detailJson.status) {
-                throw new Error("Ambas APIs fallaron")
+            if (!detailJson.status || !detailJson.data.downloadUrl) {
+                return conn.sendMessage(chat, { text: '› ✐  *Error:* El servidor no pudo generar el archivo. Intenta de nuevo. ✧' }, { quoted: m })
             }
 
-            const data = sylphyJson.result || detailJson.data
-            const downloadUrl = detailJson.data?.downloadUrl || `https://api.vreden.my.id/api/stickerly?id=${packUrl.split('/s/')[1]}`
+            const s = sylphyJson.status ? sylphyJson.result : detailJson.data
+            const fileUrl = detailJson.data.downloadUrl
 
             const caption = `
 ✧ ‧₊˚ *STICKERLY PACKAGE* ୧ֹ˖ ⑅ ࣪⊹
 ⊹₊ ˚‧︵‿₊୨୧₊‿︵‧ ˚ ₊⊹
-✰ Pack: *${data.name || data.title}*
-   › ✿ \`Autor\`: *${data.author?.username || data.author}*
-   › ✦ \`Cantidad\`: *${data.stickerCount} stickers*
-   › ꕤ \`Tipo\`: *${data.isAnimated ? 'Animado' : 'Estático'}*
+✰ Pack: *${s.name || s.title}*
+   › ✿ \`Autor\`: *${s.author?.username || s.author}*
+   › ✦ \`Cantidad\`: *${s.stickerCount} stickers*
+   › ꕤ \`Tipo\`: *${s.isAnimated ? 'Animado' : 'Estático'}*
 
 > Abre el archivo de abajo para añadirlo a tu WhatsApp. ✧
 
 > Powered by 𝓜𝓲𝓼α ♡`.trim()
 
-            // Enviamos la portada
+            // Enviamos la miniatura
             await conn.sendMessage(chat, { 
-                image: { url: data.thumbnailUrl }, 
+                image: { url: s.thumbnailUrl }, 
                 caption: caption 
             }, { quoted: m })
 
-            // Enviamos el ARCHIVO (.exstickerpack)
+            // 4. ENVIAMOS EL ARCHIVO (Aquí ya no debería dar 404)
             await conn.sendMessage(chat, {
-                document: { url: downloadUrl },
+                document: { url: fileUrl },
                 mimetype: 'application/octet-stream',
-                fileName: `${(data.name || 'Pack').replace(/[^a-z0-9]/gi, '_')}.exstickerpack`,
+                fileName: `${(s.name || 'Pack').replace(/[^a-z0-9]/gi, '_')}.exstickerpack`,
                 caption: `› ✐  *Paquete listo para 𝓜𝓲𝓼α.*`
             }, { quoted: m })
 
             await conn.sendMessage(chat, { react: { text: '✅', key: m.key } })
 
         } catch (e) {
-            console.error("ERROR EN STICKERLY:", e)
-            await conn.sendMessage(chat, { 
-                text: '› ✐  *Error:* El servidor de descargas está saturado. Intenta de nuevo en un momento. ✧\n\n> Powered by 𝓜𝓲𝓼α ♡' 
-            }, { quoted: m })
+            console.error("ERROR CRITICO:", e)
+            await conn.sendMessage(chat, { text: '› ✐  *Error:* El servidor de stickers está caído. ✧' }, { quoted: m })
         }
     }
 }
