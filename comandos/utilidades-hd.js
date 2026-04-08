@@ -1,6 +1,6 @@
 import fetch from 'node-fetch'
 
-const hdMisaFinalBoss = {
+const hdMisaSuperDetector = {
     name: 'hd',
     alias: ['remini', 'enhance', 'mejorar'],
     category: 'tools',
@@ -9,32 +9,46 @@ const hdMisaFinalBoss = {
     run: async (conn, m) => {
         const chat = m.key.remoteJid
         
-        // --- DEPURACIÓN (Míralo en tu consola de Sky Ultra) ---
-        console.log("--- DEBUG MISA HD ---")
+        // --- ESTO ES LO QUE ARREGLA EL "MIME VACÍO" ---
         let q = m.quoted ? m.quoted : m
-        let mime = (q.msg || q).mimetype || q.mediaType || ''
-        console.log("MIME DETECTADO:", mime)
-        // -----------------------------------------------------
+        
+        // Intentamos detectar el MIME de 4 formas distintas para que no falle
+        let mime = (q.msg || q).mimetype || 
+                   (m.msg || m).mimetype || 
+                   q.mediaType || 
+                   (m.quoted?.message?.imageMessage?.mimetype) || ''
 
-        // 1. VALIDACIÓN MANUAL (Si no hay mime, intentamos forzar la detección)
-        if (!mime || !mime.includes('image')) {
+        console.log("--- DEBUG RECARGADO ---")
+        console.log("MIME ENCONTRADO:", mime)
+
+        // 1. SI SIGUE VACÍO, BUSCAMOS MANUALMENTE EN EL MENSAJE CITADO
+        if (!mime && m.quoted?.message) {
+            const types = Object.keys(m.quoted.message)
+            if (types.includes('imageMessage')) mime = 'image/jpeg'
+            if (types.includes('stickerMessage')) mime = 'image/webp'
+        }
+
+        if (!mime || !mime.includes('image') && !mime.includes('webp')) {
             return conn.sendMessage(chat, { 
-                text: `> ✐  *No detecto ninguna imagen.* ✧\n> *Uso:* Responde a una foto con el comando *hd*.` 
+                text: `> ✐  *No detecto ninguna imagen.* ✧\n> *Asegúrate de responder directamente a la foto.*` 
             }, { quoted: m })
         }
 
         try {
             await conn.sendMessage(chat, { react: { text: '⏳', key: m.key } })
 
-            // 2. DESCARGA DEL BUFFER
-            // Usamos una descarga más compatible con diferentes versiones de Baileys
-            const buffer = await q.download?.() || await conn.downloadMediaMessage(q)
-            
-            if (!buffer) {
-                return conn.sendMessage(chat, { text: `> ✐  *Error:* No se pudo obtener el archivo de imagen.*` }, { quoted: m })
+            // 2. DESCARGA FORZADA
+            // Si q.download no existe, usamos el método directo de la conexión
+            let buffer
+            try {
+                buffer = await q.download?.()
+            } catch {
+                buffer = await conn.downloadMediaMessage(q)
             }
+            
+            if (!buffer) throw new Error("No se pudo descargar el buffer")
 
-            // 3. PROCESO CON LA API
+            // 3. API DE MEJORA
             const imageData = buffer.toString('base64')
             const response = await fetch('https://us-central1-vector-ink.cloudfunctions.net/upscaleImage', {
                 method: 'POST',
@@ -42,41 +56,28 @@ const hdMisaFinalBoss = {
                 body: JSON.stringify({ data: { image: imageData } })
             })
 
-            const resText = await response.text()
-            let json
-            try {
-                json = JSON.parse(resText)
-            } catch (e) {
-                throw new Error("Respuesta de API inválida")
-            }
-
-            const result = JSON.parse(json.result)
+            const resJson = await response.json()
+            const result = JSON.parse(resJson.result)
             const base64Image = result?.image?.b64_json
 
-            if (!base64Image) throw new Error("No hay imagen en la respuesta")
+            if (!base64Image) throw new Error("La API no devolvió imagen")
 
             const outputBuffer = Buffer.from(base64Image, 'base64')
 
-            // 4. DISEÑO MISA
-            const caption = `
-ʚ 𝐌𝐢𝐬𝐚 𝐇𝐃 𝐄𝐧𝐡𝐚𝐧𝐜𝐞 ɞ
-⊹₊ ˚‧︵‿₊୨୧₊‿︵‧ ˚ ₊⊹
+            // 4. ENVÍO FINAL
+            await conn.sendMessage(chat, { 
+                image: outputBuffer, 
+                caption: 'ʚ 𝐌𝐢𝐬𝐚 𝐇𝐃 ɞ\n> Calidad mejorada con éxito ✧' 
+            }, { quoted: m })
 
-✰ *Estado:* ¡Mejora completada! ✧
-
-> Powered by 𝓜𝓲𝓼𝓪 ♡`.trim()
-
-            await conn.sendMessage(chat, { image: outputBuffer, caption }, { quoted: m })
             await conn.sendMessage(chat, { react: { text: '✅', key: m.key } })
 
         } catch (e) {
-            console.error("ERROR EN HD:", e)
+            console.error("ERROR FINAL HD:", e)
             await conn.sendMessage(chat, { react: { text: '✖️', key: m.key } })
-            await conn.sendMessage(chat, { 
-                text: `> ✐  *Error:* El servidor de mejora está saturado. Intenta con otra foto.` 
-            }, { quoted: m })
+            await conn.sendMessage(chat, { text: `> ✐  *Error:* No se pudo procesar. Intenta con otra imagen.` }, { quoted: m })
         }
     }
 }
 
-export default hdMisaFinalBoss
+export default hdMisaSuperDetector
