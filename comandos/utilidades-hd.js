@@ -1,8 +1,6 @@
-import FormData from 'form-data'
-import { fileTypeFromBuffer } from 'file-type'
 import fetch from 'node-fetch'
 
-const reminiMisa = {
+const hdMisaDetector = {
     name: 'hd',
     alias: ['remini', 'enhance', 'mejorar'],
     category: 'tools',
@@ -10,23 +8,30 @@ const reminiMisa = {
 
     run: async (conn, m, { usedPrefix, command }) => {
         const chat = m.key.remoteJid
-        const q = m.quoted ? m.quoted : m
-        const mime = (q.msg || q).mimetype || ''
+        
+        // --- DETECTOR ULTRA-SENSIBLE ---
+        // Buscamos en el mensaje citado (m.quoted) o en el mensaje directo (m)
+        let q = m.quoted ? m.quoted : m
+        let mime = (q.msg || q).mimetype || q.mediaType || ''
 
-        // 1. VALIDACIÓN DE IMAGEN
-        if (!/image\/(jpe?g|png|webp)/.test(mime)) return conn.sendMessage(chat, { 
-            text: `> ✐  *Por favor, responde a una imagen para mejorar su calidad.* ✧` 
-        }, { quoted: m })
+        // Si no detecta nada, revisamos si es una imagen dentro de un mensaje de "view once" o similares
+        if (!mime && q.msg && q.msg.mimetype) mime = q.msg.mimetype
+
+        // 1. VALIDACIÓN
+        if (!/image\/(jpe?g|png|webp)/.test(mime)) {
+            return conn.sendMessage(chat, { 
+                text: `> ✐  *No detecto ninguna imagen.* ✧\n> *Consejo:* Responde directamente a una foto o sticker con *${usedPrefix + command}*.` 
+            }, { quoted: m })
+        }
 
         try {
-            // Reacción de espera
             await conn.sendMessage(chat, { react: { text: '⏳', key: m.key } })
 
-            // 2. DESCARGA Y PREPARACIÓN
-            const buffer = await q.download()
-            const { ext } = await fileTypeFromBuffer(buffer)
-            
-            // 3. LLAMADA A LA API DE MEJORA
+            // 2. DESCARGA
+            const buffer = await q.download?.()
+            if (!buffer) return conn.sendMessage(chat, { text: `> ✐  *Error al descargar la imagen.*` }, { quoted: m })
+
+            // 3. PROCESO DE MEJORA (VectorInk API)
             const imageData = buffer.toString('base64')
             const response = await fetch('https://us-central1-vector-ink.cloudfunctions.net/upscaleImage', {
                 method: 'POST',
@@ -35,41 +40,31 @@ const reminiMisa = {
             })
 
             const json = await response.json()
+            if (!json.result) throw new Error("API Fallida")
+            
             const result = JSON.parse(json.result)
             const base64Image = result.image.b64_json
-
-            if (!base64Image) throw new Error("No se recibió la imagen mejorada")
-
-            // Convertir resultado a Buffer
             const outputBuffer = Buffer.from(base64Image, 'base64')
 
-            // 4. DISEÑO FINAL MISA
+            // 4. ENVÍO ESTILO MISA
             const caption = `
 ʚ 𝐌𝐢𝐬𝐚 𝐇𝐃 𝐄𝐧𝐡𝐚𝐧𝐜𝐞 ɞ
 ⊹₊ ˚‧︵‿₊୨୧₊‿︵‧ ˚ ₊⊹
 
-✰ *Estado:* ¡Imagen optimizada!
-   > ✿ *Formato:* PNG (Alta Calidad)
-
-> 🎀 *Nota:* La resolución ha sido aumentada artificialmente.
+✰ *Estado:* ¡Mejora completa! ✧
+   > ✿ *Calidad:* Ultra HD
 
 > Powered by 𝓜𝓲𝓼𝓪 ♡`.trim()
 
-            await conn.sendMessage(chat, { 
-                image: outputBuffer, 
-                caption: caption 
-            }, { quoted: m })
-
+            await conn.sendMessage(chat, { image: outputBuffer, caption }, { quoted: m })
             await conn.sendMessage(chat, { react: { text: '✅', key: m.key } })
 
         } catch (e) {
-            console.error("ERROR REVENTADO EN HD:", e)
-            await conn.sendMessage(chat, { react: { text: '❌', key: m.key } })
-            await conn.sendMessage(chat, { 
-                text: `> ✐  *Error al procesar la imagen.*\n> [Detalle: *Servidor de mejora saturado*]` 
-            }, { quoted: m })
+            console.error("ERROR HD:", e)
+            await conn.sendMessage(chat, { react: { text: '✖️', key: m.key } })
+            await conn.sendMessage(chat, { text: `> ✐  *Error:* El servidor de mejora no respondió. Intenta de nuevo.` }, { quoted: m })
         }
     }
 }
 
-export default reminiMisa
+export default hdMisaDetector
