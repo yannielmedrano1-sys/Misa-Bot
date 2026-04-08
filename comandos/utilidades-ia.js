@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Memoria temporal de sesiones (se mantiene en RAM)
 global.ia_memory = global.ia_memory || {};
-const limitMemory = 10; // Máximo 10 mensajes (5 preguntas y 5 respuestas) para fluidez
+const limitMemory = 20; // Máximo 20 mensajes (10 preguntas y 10 respuestas) para fluidez
 
 // ꕤ ━━━━━━━━━━ IA UNIFICADA CON MEMORIA (MISA AMANE) ━━━━━━━━━━ ꕤ
 const aiCommand = {
