@@ -28,13 +28,31 @@ const stickerlyCommand = {
 
             const json = await res.json()
 
-            if (!json.status || !json.resultados?.length) {
+            // 🔥 Soporte para múltiples estructuras posibles
+            const results =
+                json.resultados ||
+                json.results ||
+                json.result ||
+                json.data ||
+                []
+
+            if (!Array.isArray(results) || results.length === 0) {
                 throw new Error('No encontré paquetes con ese nombre')
             }
 
-            const pack = json.resultados[0]
+            const pack = results[0]
 
-            const match = pack.url.match(/\/s\/([^/?]+)/)
+            const packUrl =
+                pack.url ||
+                pack.link ||
+                pack.packUrl ||
+                pack.stickerUrl
+
+            if (!packUrl) {
+                throw new Error('La API no devolvió URL del paquete')
+            }
+
+            const match = packUrl.match(/\/s\/([^/?]+)/)
             const packId = match?.[1]
 
             if (!packId) {
@@ -43,16 +61,32 @@ const stickerlyCommand = {
 
             const fileUrl = `https://stickerly.pstatic.net/sticker_pack/${packId}/pack.exstickerpack`
 
+            const packName =
+                pack.name ||
+                pack.title ||
+                'Sticker Pack'
+
+            const author =
+                pack.author?.username ||
+                pack.author ||
+                'Desconocido'
+
+            const thumb =
+                pack.thumbnailUrl ||
+                pack.thumbnail ||
+                pack.image ||
+                null
+
             const caption = `📦 *PAQUETE ENCONTRADO*
 
-📝 Nombre: ${pack.name || 'Sin nombre'}
-👤 Autor: ${pack.author?.username || 'Desconocido'}
+📝 Nombre: ${packName}
+👤 Autor: ${author}
 
 ✨ Abre el archivo para agregar el pack a WhatsApp`
 
-            if (pack.thumbnailUrl) {
+            if (thumb) {
                 await conn.sendMessage(chat, {
-                    image: { url: pack.thumbnailUrl },
+                    image: { url: thumb },
                     caption
                 }, { quoted: m })
             }
@@ -60,7 +94,7 @@ const stickerlyCommand = {
             await conn.sendMessage(chat, {
                 document: { url: fileUrl },
                 mimetype: 'application/octet-stream',
-                fileName: `${(pack.name || 'pack').replace(/[^a-z0-9]/gi, '_')}.exstickerpack`
+                fileName: `${packName.replace(/[^a-z0-9]/gi, '_')}.exstickerpack`
             }, { quoted: m })
 
             await conn.sendMessage(chat, {
