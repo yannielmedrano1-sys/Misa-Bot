@@ -1,19 +1,25 @@
 /**
- * ꕤ ━━━━━━━━━━ BOT ON/OFF - 𝓜𝓲𝓼𝓪 ━━━━━━━━━━ ꕤ
+ * ꕤ ━━━━━━━━━━ BOT ON/OFF (FIXED) - 𝓜𝓲𝓼𝓪 ━━━━━━━━━━ ꕤ
  */
 
 const botStatusMisa = {
     name: 'bot',
     alias: ['misa'],
     category: 'group',
-    isAdmin: true, // Solo admins del grupo
-    isGroup: true, // Solo funciona en grupos
+    isAdmin: true,
+    isGroup: true,
     noPrefix: true,
 
-    run: async (conn, m, { args, text }) => {
+    run: async (conn, m, { args }) => {
         const chatJid = m.chat
         
-        // --- ACCESO A LA BASE DE DATOS ---
+        // --- 🛡️ FIX: INICIALIZACIÓN DE EMERGENCIA ---
+        // Si global.db o global.db.data no existen, los creamos para evitar el error
+        if (!global.db) global.db = { data: {} }
+        if (!global.db.data) global.db.data = {}
+        if (!global.db.data.chats) global.db.data.chats = {}
+        
+        // Ahora inicializamos el chat específico si no existe
         if (!global.db.data.chats[chatJid]) {
             global.db.data.chats[chatJid] = { isBanned: false }
         }
@@ -23,42 +29,26 @@ const botStatusMisa = {
 
         // --- LÓGICA DE APAGADO ---
         if (args[0] === 'off') {
-            if (estado) return conn.sendMessage(chatJid, { 
-                text: `> ✐  *Misa ya está descansando en este grupo.* ✧` 
-            }, { quoted: m })
-            
+            if (estado) return conn.sendMessage(chatJid, { text: `> ✐  *Misa ya está desactivada aquí.*` }, { quoted: m })
             chat.isBanned = true
-            await conn.sendMessage(chatJid, { react: { text: '💤', key: m.key } })
-            return conn.sendMessage(chatJid, { 
-                text: `> ✐  *Has desactivado a 𝓜𝓲𝓼𝓪.* ✧\n> Ya no responderé a comandos aquí (solo los admins podrán activarme).` 
-            }, { quoted: m })
+            return conn.sendMessage(chatJid, { text: `> ✐  *Misa desactivada con éxito.* ✧` }, { quoted: m })
         }
 
         // --- LÓGICA DE ENCENDIDO ---
         if (args[0] === 'on') {
-            if (!estado) return conn.sendMessage(chatJid, { 
-                text: `> ✐  *Misa ya está activa y lista para ayudar.* ✧` 
-            }, { quoted: m })
-            
+            if (!estado) return conn.sendMessage(chatJid, { text: `> ✐  *Misa ya está activa.*` }, { quoted: m })
             chat.isBanned = false
-            await conn.sendMessage(chatJid, { react: { text: '✨', key: m.key } })
-            return conn.sendMessage(chatJid, { 
-                text: `> ✐  *Has activado a 𝓜𝓲𝓼𝓪.* ✧\n> ¡Estoy de vuelta, Light-kun!` 
-            }, { quoted: m })
+            return conn.sendMessage(chatJid, { text: `> ✐  *Misa activada con éxito.* ✧` }, { quoted: m })
         }
 
-        // --- ESTADO ACTUAL (Si solo escriben "bot") ---
+        // --- ESTADO ACTUAL ---
         const statusMsg = `
 ʚ 𝐌𝐢𝐬𝐚 𝐒𝐭𝐚𝐭𝐮𝐬 ɞ
 ⊹₊ ˚‧︵‿₊୨୧₊‿︵‧ ˚ ₊⊹
+✰ *Estado:* ${estado ? '✗ Desactivado' : '✓ Activado'}
 
-✰ *Estado actual:* ${estado ? '✗ 𝐃𝐞𝐬𝐚𝐜𝐭𝐢𝐯𝐚𝐝𝐨' : '✓ 𝐀𝐜𝐭𝐢𝐯𝐚𝐝𝐨'}
-
-📄 *Controles:*
-> ✿ Para encender: \`bot on\`
-> ✿ Para apagar: \`bot off\`
-
-> Powered by 𝓜𝓲𝓼𝓪 ♡`.trim()
+> ● Para encender: \`bot on\`
+> ● Para apagar: \`bot off\``.trim()
 
         return conn.sendMessage(chatJid, { text: statusMsg }, { quoted: m })
     }
