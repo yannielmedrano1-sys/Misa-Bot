@@ -1,37 +1,40 @@
 import fetch from 'node-fetch'
 
-const hdMisaDetector = {
+const hdMisaFinalBoss = {
     name: 'hd',
     alias: ['remini', 'enhance', 'mejorar'],
     category: 'tools',
     noPrefix: true,
 
-    run: async (conn, m, { usedPrefix, command }) => {
+    run: async (conn, m) => {
         const chat = m.key.remoteJid
         
-        // --- DETECTOR ULTRA-SENSIBLE ---
-        // Buscamos en el mensaje citado (m.quoted) o en el mensaje directo (m)
+        // --- DEPURACIÓN (Míralo en tu consola de Sky Ultra) ---
+        console.log("--- DEBUG MISA HD ---")
         let q = m.quoted ? m.quoted : m
         let mime = (q.msg || q).mimetype || q.mediaType || ''
+        console.log("MIME DETECTADO:", mime)
+        // -----------------------------------------------------
 
-        // Si no detecta nada, revisamos si es una imagen dentro de un mensaje de "view once" o similares
-        if (!mime && q.msg && q.msg.mimetype) mime = q.msg.mimetype
-
-        // 1. VALIDACIÓN
-        if (!/image\/(jpe?g|png|webp)/.test(mime)) {
+        // 1. VALIDACIÓN MANUAL (Si no hay mime, intentamos forzar la detección)
+        if (!mime || !mime.includes('image')) {
             return conn.sendMessage(chat, { 
-                text: `> ✐  *No detecto ninguna imagen.* ✧\n> *Consejo:* Responde directamente a una foto o sticker con *${usedPrefix + command}*.` 
+                text: `> ✐  *No detecto ninguna imagen.* ✧\n> *Uso:* Responde a una foto con el comando *hd*.` 
             }, { quoted: m })
         }
 
         try {
             await conn.sendMessage(chat, { react: { text: '⏳', key: m.key } })
 
-            // 2. DESCARGA
-            const buffer = await q.download?.()
-            if (!buffer) return conn.sendMessage(chat, { text: `> ✐  *Error al descargar la imagen.*` }, { quoted: m })
+            // 2. DESCARGA DEL BUFFER
+            // Usamos una descarga más compatible con diferentes versiones de Baileys
+            const buffer = await q.download?.() || await conn.downloadMediaMessage(q)
+            
+            if (!buffer) {
+                return conn.sendMessage(chat, { text: `> ✐  *Error:* No se pudo obtener el archivo de imagen.*` }, { quoted: m })
+            }
 
-            // 3. PROCESO DE MEJORA (VectorInk API)
+            // 3. PROCESO CON LA API
             const imageData = buffer.toString('base64')
             const response = await fetch('https://us-central1-vector-ink.cloudfunctions.net/upscaleImage', {
                 method: 'POST',
@@ -39,20 +42,27 @@ const hdMisaDetector = {
                 body: JSON.stringify({ data: { image: imageData } })
             })
 
-            const json = await response.json()
-            if (!json.result) throw new Error("API Fallida")
-            
+            const resText = await response.text()
+            let json
+            try {
+                json = JSON.parse(resText)
+            } catch (e) {
+                throw new Error("Respuesta de API inválida")
+            }
+
             const result = JSON.parse(json.result)
-            const base64Image = result.image.b64_json
+            const base64Image = result?.image?.b64_json
+
+            if (!base64Image) throw new Error("No hay imagen en la respuesta")
+
             const outputBuffer = Buffer.from(base64Image, 'base64')
 
-            // 4. ENVÍO ESTILO MISA
+            // 4. DISEÑO MISA
             const caption = `
 ʚ 𝐌𝐢𝐬𝐚 𝐇𝐃 𝐄𝐧𝐡𝐚𝐧𝐜𝐞 ɞ
 ⊹₊ ˚‧︵‿₊୨୧₊‿︵‧ ˚ ₊⊹
 
-✰ *Estado:* ¡Mejora completa! ✧
-   > ✿ *Calidad:* Ultra HD
+✰ *Estado:* ¡Mejora completada! ✧
 
 > Powered by 𝓜𝓲𝓼𝓪 ♡`.trim()
 
@@ -60,11 +70,13 @@ const hdMisaDetector = {
             await conn.sendMessage(chat, { react: { text: '✅', key: m.key } })
 
         } catch (e) {
-            console.error("ERROR HD:", e)
+            console.error("ERROR EN HD:", e)
             await conn.sendMessage(chat, { react: { text: '✖️', key: m.key } })
-            await conn.sendMessage(chat, { text: `> ✐  *Error:* El servidor de mejora no respondió. Intenta de nuevo.` }, { quoted: m })
+            await conn.sendMessage(chat, { 
+                text: `> ✐  *Error:* El servidor de mejora está saturado. Intenta con otra foto.` 
+            }, { quoted: m })
         }
     }
 }
 
-export default hdMisaDetector
+export default hdMisaFinalBoss
