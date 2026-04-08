@@ -58,7 +58,7 @@ const tiktokCommand = {
             }
 
             const caption = `
-✧ ‧₊˚ *TIKTOK DOWNLOADER* ୧ֹ˖ ⑅ ࣪⊹
+✧ ‧₊˚ *TIKTOK DOWNLOADER* ୧ֹ˖ ⑅
 
 ✰ Título: *${v.title || "TikTok Video"}*
    › ✿ \`Autor\`: *${v.author?.nickname || v.nickname || "Anónimo"}*
@@ -66,7 +66,7 @@ const tiktokCommand = {
    › ꕤ \`Vistas\`: *${formatNr(vistasReales)}*
    › ❖ \`Coments\`: *${formatNr(commentsReales)}*
    › ❖ \`Link\`: *${videoLink}*
-> Powered by 𝓜𝓲𝓼𝓪 ♡`.trim()
+   > Powered by 𝓜𝓲𝓼𝓪 ♡`.trim()
 
             const videoUrl = v.dl || v.video || v.url
 
