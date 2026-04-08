@@ -1,6 +1,6 @@
 // BY ABRAHAN-M AND YANNIEL :D
 import axios from 'axios'
-import { writeFileSync, unlinkSync } from 'fs'
+import { writeFileSync, unlinkSync, existsSync } from 'fs'
 import { tmpdir } from 'os'
 import path from 'path'
 import { exec } from 'child_process'
@@ -16,12 +16,12 @@ const qcCommand = {
         const sender = m.sender || m.key.participant || m.key.remoteJid
 
         try {
-            // Mantenemos tu lógica original de texto
+            // Texto para el sticker (lo que escribes o el texto citado)
             let textFinal = text || m.quoted?.text
 
             if (!textFinal) {
                 return conn.sendMessage(chat, {
-                    text: '› ✐  *Error:* Debes escribir un mensaje o responder a uno. ✧'
+                    text: '✐  *Error:* Debes escribir un mensaje o responder a uno. ✧'
                 }, { quoted: m })
             }
 
@@ -31,22 +31,11 @@ const qcCommand = {
             const pp = await conn.profilePictureUrl(sender, 'image')
                 .catch(() => 'https://telegra.ph/file/24fa902ead26340f3df2c.png')
 
-            // 🔥 NOMBRE (WHATSAPP + DB + FALLBACK)
-            const db = global.db?.data || {}
-            const user = db.users?.[sender] || {}
-            const name = user.name || m.pushName || sender.split('@')[0]
+            // 🔥 NOMBRE
+            const name = m.pushName || sender.split('@')[0]
 
-            // 🧠 --- LÓGICA DE REPLY (EL CAMBIO ESTÁ AQUÍ) ---
-            let replyMessage = {}
-            if (m.quoted) {
-                replyMessage = {
-                    name: m.quoted.name || m.quoted.sender.split('@')[0],
-                    text: m.quoted.text || '',
-                    id: 1 // La API a veces necesita un ID interno para mostrar el reply
-                }
-            }
-
-            const quoteObj = {
+            // 🧠 ESTRUCTURA DE MENSAJES (ARRAY)
+            const obj = {
                 type: 'quote',
                 format: 'png',
                 backgroundColor: '#000000',
@@ -62,28 +51,29 @@ const qcCommand = {
                         photo: { url: pp }
                     },
                     text: textFinal,
-                    replyMessage: replyMessage // <--- Ahora sí lleva info si hay quoted
+                    replyMessage: m.quoted ? {
+                        name: m.quoted.name || m.quoted.sender.split('@')[0],
+                        text: m.quoted.text || '',
+                        id: 1
+                    } : undefined // Si no hay quoted, no mandamos nada aquí
                 }]
             }
 
             const res = await axios.post(
                 'https://bot.lyo.su/quote/generate',
-                quoteObj,
+                obj,
                 { headers: { 'Content-Type': 'application/json' } }
             )
 
-            if (!res.data?.result?.image) {
-                throw new Error("API no respondió imagen")
-            }
+            if (!res.data?.result?.image) throw new Error("API Error")
 
             const buffer = Buffer.from(res.data.result.image, 'base64')
-
-            const input = path.join(tmpdir(), `qc-${Date.now()}.png`)
-            const output = path.join(tmpdir(), `qc-${Date.now()}.webp`)
+            const input = path.join(tmpdir(), `qc_${Date.now()}.png`)
+            const output = path.join(tmpdir(), `qc_${Date.now()}.webp`)
 
             writeFileSync(input, buffer)
 
-            // Tu comando de ffmpeg original
+            // FFmpeg original
             await new Promise((resolve, reject) => {
                 exec(`ffmpeg -i ${input} -vf "scale=512:512:force_original_aspect_ratio=decrease" ${output}`, (err) => {
                     if (err) reject(err)
@@ -91,13 +81,11 @@ const qcCommand = {
                 })
             })
 
-            await conn.sendMessage(chat, {
-                sticker: { url: output }
-            }, { quoted: m })
+            await conn.sendMessage(chat, { sticker: { url: output } }, { quoted: m })
 
-            // Limpieza
-            if (fs.existsSync(input)) unlinkSync(input)
-            if (fs.existsSync(output)) unlinkSync(output)
+            // Limpieza segura
+            if (existsSync(input)) unlinkSync(input)
+            if (existsSync(output)) unlinkSync(output)
 
             await conn.sendMessage(chat, { react: { text: '✅', key: m.key } })
 
@@ -105,7 +93,7 @@ const qcCommand = {
             console.error("QC ERROR:", e)
             await conn.sendMessage(chat, { react: { text: '✖️', key: m.key } })
             await conn.sendMessage(chat, {
-                text: '› ✐  *Error:* No se pudo generar el quote con reply. ✧'
+                text: '› ✐  *Error:* No se pudo generar el sticker con respuesta. ✧'
             }, { quoted: m })
         }
     }
