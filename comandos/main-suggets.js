@@ -1,114 +1,87 @@
 /**
- * ꕤ ━━━━━━━━━━ REPORT & SUGGEST - 𝓜𝓲𝓼𝓪 ━━━━━━━━━━ ꕤ
+ * ꕤ ━━━━━━━━━━ SUGGEST SYSTEM - 𝓜𝓲𝓼𝓪 𝓑𝓸𝓽 ━━━━━━━━━━ ꕤ
+ * Creado para Yanniel - Sky Ultra Panel
  */
 
-const reportMisa = {
-    command: ['report', 'reporte', 'sug', 'suggest'],
+const suggestMisaPremium = {
+    command: ['sug', 'suggest', 'sugerencia'],
     category: 'info',
     noPrefix: true,
 
-    run: async (conn, m, { text, command, prefix }) => {
+    run: async (conn, m, { text, command }) => {
         const chat = m.key.remoteJid || m.chat
-        const texto = text?.trim()
-        const sender = m.sender || m.key.participant || m.key.remoteJid
+        const sender = m.sender || m.key.participant
         
-        // --- SISTEMA DE COOLDOWN (Usando base de datos o variable temporal) ---
-        // Si no tienes DB configurada, esto evitará que colapsen el bot
-        if (!global.db) global.db = { data: { users: {} } }
-        if (!global.db.data.users[sender]) global.db.data.users[sender] = {}
-        
-        const now = Date.now()
-        const cooldown = global.db.data.users[sender].sugCooldown || 0
-        const restante = cooldown - now
-
-        if (restante > 0) {
+        // --- VALIDACIÓN DE TEXTO ---
+        if (!text || text.length < 15) {
             return conn.sendMessage(chat, { 
-                text: `> ✐  *Light-kun, espera un poco.* ✧\n> Regresa en: *${msToTime(restante)}*` 
+                text: `> ✐  *Light-kun, tu sugerencia es muy breve.* ✧\n> *Uso:* .sug [explicación detallada de tu idea]` 
             }, { quoted: m })
         }
 
-        if (!texto || texto.length < 10) {
-            return conn.sendMessage(chat, { 
-                text: `> ✐  *Mensaje demasiado corto.* ✧\n> Explica mejor tu reporte o sugerencia (mínimo 10 caracteres).` 
-            }, { quoted: m })
-        }
+        try {
+            await conn.sendMessage(chat, { react: { text: '💡', key: m.key } })
 
-        const fechaLocal = new Date().toLocaleDateString('es-ES', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-        })
-
-        const esReporte = ['report', 'reporte'].includes(command)
-        const tipoLabel = esReporte ? '🆁ҽ𝕡σɾƚҽ' : '🆂մց𝕖ɾҽ𝚗cíᥲ'
-        const user = m.pushName || 'Usuario'
-        const numero = sender.split('@')[0]
-        
-        // Foto de perfil del usuario que reporta
-        const pp = await conn.profilePictureUrl(sender, 'image').catch(() => 'https://i.pinimg.com/736x/30/6d/5d/306d5d75b0e4be7706e4fe784507154b.jpg')
-
-        let reportMsg = `
-🫗۫᷒ᰰ⃘ׅ᷒  ۟　\`${tipoLabel}\`　ׅ　ᩡ
+            // --- GENERADOR DE ID ÚNICO ---
+            const sugID = Math.random().toString(36).substring(2, 7).toUpperCase()
+            
+            // --- DATOS DEL EMISOR ---
+            const user = m.pushName || 'Anónimo'
+            const pp = await conn.profilePictureUrl(sender, 'image').catch(() => 'https://i.pinimg.com/736x/30/6d/5d/306d5d75b0e4be7706e4fe784507154b.jpg')
+            
+            const reportMsg = `
+✧ ‧₊˚ 𝓢𝓾𝓰𝓮𝓻𝓮𝓷𝓬𝓲𝓪 𝓡𝓮𝓬𝓲𝓫𝓲𝓭𝓪 ୧ֹ˖ ⑅ ࣪⊹
 ⊹₊ ˚‧︵‿₊୨୧₊‿︵‧ ˚ ₊⊹
 
-𖹭  ׄ  ְ ❖ *Nombre*
-> ${user}
+🆔 *Ticket:* #${sugID}
+👤 *Usuario:* ${user}
+📱 *Número:* wa.me/${sender.split('@')[0]}
 
-𖹭  ׄ  ְ ❖ *Número*
-> wa.me/${numero}
+📝 *PROPUESTA:*
+"${text.trim()}"
 
-𖹭  ׄ  ְ ❖ *Fecha*
-> ${fechaLocal}
+✰ *Estado:* 🟢 Pendiente de revisión
+⊹₊ ˚‧︵‿₊୨୧₊‿︵‧ ˚ ₊⊹
+> *Misa-Bot: Feedback System*`.trim()
 
-𖹭  ׄ  ְ ❖ *Mensaje*
-> ${texto}
+            // --- LISTA DE STAFF (Owners) ---
+            // Pon aquí los JID de los que deben recibir las sugerencias
+            const staff = [
+                '18492797341@s.whatsapp.net', 
+                '18297677527@s.whatsapp.net'
+            ]
 
-> Powered by 𝓜𝓲𝓼𝓪 ♡`.trim()
-
-        // --- ENVÍO A LOS OWNERS ---
-        // Definimos los dueños que recibirán el mensaje
-        const owners = ['18492797341', '18297677527'] // Agrega aquí los números sin @s.whatsapp.net
-
-        for (const num of owners) {
-            try {
-                await conn.sendMessage(num + '@s.whatsapp.net', {
+            for (const jid of staff) {
+                await conn.sendMessage(jid, {
                     text: reportMsg,
                     contextInfo: {
                         externalAdReply: {
-                            title: esReporte ? "🚨 NUEVO REPORTE" : "💡 NUEVA SUGERENCIA",
-                            body: `De: ${user}`,
+                            title: `💡 NUEVA IDEA: ${sugID}`,
+                            body: `Enviada por: ${user}`,
                             thumbnailUrl: pp,
                             sourceUrl: 'https://github.com/yannielmedrano1-sys/-sky',
                             mediaType: 1,
-                            showAdAttribution: true
+                            renderLargerThumbnail: false
                         }
                     }
                 })
-            } catch (e) {
-                console.log(`Error enviando reporte a ${num}:`, e)
             }
+
+            // --- RESPUESTA AL USUARIO ---
+            const confirmMsg = `
+> ✐  *¡Sugerencia enviada!* ✧
+> Tu ticket es el **#${sugID}**. El Staff lo revisará pronto.
+
+*Gracias por ayudar a que Misa sea más perfecta.*`.trim()
+
+            await conn.sendMessage(chat, { text: confirmMsg }, { quoted: m })
+            await conn.sendMessage(chat, { react: { text: '✅', key: m.key } })
+
+        } catch (err) {
+            console.error("ERROR SUGGEST:", err)
+            await conn.sendMessage(chat, { text: `> ✐  *Error:* No se pudo entregar la sugerencia.` }, { quoted: m })
         }
-
-        // Guardar cooldown (24 horas)
-        global.db.data.users[sender].sugCooldown = now + 24 * 60 * 60000
-
-        await conn.sendMessage(chat, { react: { text: '📩', key: m.key } })
-        return conn.sendMessage(chat, { 
-            text: `> ✐  *${esReporte ? 'Reporte' : 'Sugerencia'} enviado.* ✧\n\n> Gracias por ayudar a mejorar a 𝓜𝓲𝓼𝓪.` 
-        }, { quoted: m })
     }
 }
 
-// Función auxiliar para el tiempo
-const msToTime = (duration) => {
-    const seconds = Math.floor((duration / 1000) % 60)
-    const minutes = Math.floor((duration / (1000 * 60)) % 60)
-    const hours = Math.floor((duration / (1000 * 60 * 60)) % 24)
-    const s = seconds.toString().padStart(2, '0')
-    const m = minutes.toString().padStart(2, '0')
-    const h = hours.toString().padStart(2, '0')
-    return `${h}h ${m}m ${s}s`
-}
-
-export default reportMisa
+export default suggestMisaPremium
