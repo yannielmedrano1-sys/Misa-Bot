@@ -1,6 +1,6 @@
 import fetch from 'node-fetch'
 
-const stickerlyFileCommand = {
+const stickerlySylphyPack = {
     name: 'stickerly',
     alias: ['sly', 'pack', 'getpack'],
     category: 'stickers',
@@ -14,7 +14,7 @@ const stickerlyFileCommand = {
         try {
             await conn.sendMessage(chat, { react: { text: '📦', key: m.key } })
 
-            // 1. Buscamos el paquete para obtener el Link de Sticker.ly
+            // 1. Buscamos el pack para obtener la URL base
             const searchRes = await fetch(`https://api.brayanofc.shop/stickerly/search?query=${encodeURIComponent(text)}&key=api-gmnch`)
             const searchJson = await searchRes.json()
 
@@ -22,47 +22,56 @@ const stickerlyFileCommand = {
                 return conn.sendMessage(chat, { text: '› ✐  *Error:* No encontré ese paquete. ✧' }, { quoted: m })
             }
 
-            const pack = searchJson.resultados[0]
+            const packUrl = searchJson.resultados[0].url
+            const packId = packUrl.split('/s/')[1] // Sacamos el ID para el archivo directo
 
-            // 2. Usamos el endpoint de DETAIL para obtener el archivo descargable (.exstickerpack)
-            const detailRes = await fetch(`https://api.brayanofc.shop/stickerly/detail?url=${encodeURIComponent(pack.url)}&key=api-gmnch`)
-            const detailJson = await detailRes.json()
+            // 2. Usamos Sylphy para sacar la info estética y confirmar el pack
+            const sylphyRes = await fetch(`https://sylphy.xyz/download/stickerly?url=${encodeURIComponent(packUrl)}&api_key=sylphy-zkacFeJ`)
+            const sylphyJson = await sylphyRes.json()
 
-            if (!detailJson.status || !detailJson.data.downloadUrl) {
-                return conn.sendMessage(chat, { text: '› ✐  *Error:* No pude generar el archivo del paquete. ✧' }, { quoted: m })
+            if (!sylphyJson.status) {
+                return conn.sendMessage(chat, { text: '› ✐  *Error:* Sylphy no pudo procesar el pack. ✧' }, { quoted: m })
             }
 
-            const d = detailJson.data
+            const data = sylphyJson.result
+            
+            // Construimos el link de descarga directa del PAQUETE COMPLETO
+            // Sticker.ly usa esta estructura para sus archivos oficiales
+            const directDownload = `https://stickerly.pstatic.net/sticker_pack/${packId}/pack.exstickerpack`
+
             const caption = `
 ✧ ‧₊˚ *STICKERLY PACKAGE* ୧ֹ˖ ⑅ ࣪⊹
 ⊹₊ ˚‧︵‿₊୨୧₊‿︵‧ ˚ ₊⊹
-✰ Pack: *${d.title || pack.name}*
-   › ✿ \`Autor\`: *${d.author || pack.author}*
-   › ✦ \`Cantidad\`: *${d.stickerCount || pack.stickerCount} stickers*
-   › ꕤ \`Estado\`: *${d.isAnimated ? 'Animado' : 'Estático'}*
+✰ Pack: *${data.name}*
+   › ✿ \`Autor\`: *${data.author.username}*
+   › ✦ \`Cantidad\`: *${data.stickerCount} stickers*
+   › ꕤ \`Tipo\`: *${data.isAnimated ? 'Animado' : 'Estático'}*
 
-> Abre el archivo de abajo para añadirlo a tu WhatsApp. ✧
+> Abre el archivo de abajo para añadir el paquete completo. ✧
 
 > Powered by 𝓜𝓲𝓼𝓪 ♡`.trim()
 
-            // 3. Enviamos la portada de Misa
-            await conn.sendMessage(chat, { image: { url: d.thumbnailUrl || pack.thumbnailUrl }, caption: caption }, { quoted: m })
+            // 3. Enviamos la portada del pack
+            await conn.sendMessage(chat, { 
+                image: { url: data.thumbnailUrl }, 
+                caption: caption 
+            }, { quoted: m })
 
-            // 4. Enviamos el ARCHIVO DEL PAQUETE para agregar directamente
+            // 4. Enviamos el ARCHIVO ÚNICO (.exstickerpack)
             await conn.sendMessage(chat, {
-                document: { url: d.downloadUrl },
-                mimetype: 'application/octet-stream', // Esto hace que el cel lo reconozca como archivo de sistema
-                fileName: `${d.title || 'Pack'}.exstickerpack`,
-                caption: `› ✐  *Paquete de stickers listo.*`
+                document: { url: directDownload },
+                mimetype: 'application/octet-stream',
+                fileName: `${data.name.replace(/[^a-z0-9]/gi, '_')}.exstickerpack`,
+                caption: `› ✐  *Paquete listo para agregar.*`
             }, { quoted: m })
 
             await conn.sendMessage(chat, { react: { text: '✅', key: m.key } })
 
         } catch (e) {
             console.error(e)
-            await conn.sendMessage(chat, { text: '› ✐  *Error:* Falló la creación del paquete. ✧' }, { quoted: m })
+            await conn.sendMessage(chat, { text: '> ✐  *Error:* Algo falló con el servidor. ✧' }, { quoted: m })
         }
     }
 }
 
-export default stickerlyFileCommand
+export default stickerlySylphyPack
