@@ -1,6 +1,8 @@
+// BY ABRAHAN-M
+
 import fetch from 'node-fetch'
 
-const stickerlyMisaFinal = {
+const stickerlyCommand = {
     name: 'stickerly',
     alias: ['sly', 'pack'],
     category: 'stickers',
@@ -8,71 +10,71 @@ const stickerlyMisaFinal = {
 
     run: async (conn, m, { text, command }) => {
         const chat = m.key.remoteJid
-        
-        if (!text) return conn.sendMessage(chat, { 
-            text: `> ✐  *¿Qué paquete buscas hoy?*\n\n*Ejemplo:*\n\`${command} milo j\`` 
-        }, { quoted: m })
+
+        if (!text) {
+            return conn.sendMessage(chat, {
+                text: `📦 *¿Qué paquete buscas?*\n\nEjemplo:\n\`${command} gatos\``
+            }, { quoted: m })
+        }
 
         try {
-            await conn.sendMessage(chat, { react: { text: '📦', key: m.key } })
+            await conn.sendMessage(chat, {
+                react: { text: '📦', key: m.key }
+            })
 
-            // 1. Buscamos el pack para sacar la URL y el ID
-            const searchRes = await fetch(`https://api.brayanofc.shop/stickerly/search?query=${encodeURIComponent(text)}&key=api-gmnch`)
-            const searchJson = await searchRes.json()
+            const res = await fetch(
+                `https://api.brayanofc.shop/stickerly/search?query=${encodeURIComponent(text)}&key=api-RfQ9E`
+            )
 
-            if (!searchJson.status || !searchJson.resultados?.[0]) {
-                return conn.sendMessage(chat, { text: '> ✐  *Error:* No encontré ese paquete. ✧' }, { quoted: m })
+            const json = await res.json()
+
+            if (!json.status || !json.resultados?.length) {
+                throw new Error('No encontré paquetes con ese nombre')
             }
 
-            const packData = searchJson.resultados[0]
-            const packId = packData.url.split('/s/')[1] // Sacamos el ID (ej: E4LTQK)
+            const pack = json.resultados[0]
 
-            // 2. Obtenemos los detalles con el JSON que me pasaste (usando 'detalles')
-            const detailRes = await fetch(`https://api.brayanofc.shop/stickerly/detail?url=${encodeURIComponent(packData.url)}&key=api-gmnch`)
-            const detailJson = await detailRes.json()
+            const match = pack.url.match(/\/s\/([^/?]+)/)
+            const packId = match?.[1]
 
-            if (!detailJson.status || !detailJson.detalles) {
-                return conn.sendMessage(chat, { text: '> ✐  *Error:* 𝓜𝓲𝓼𝓪 no pudo conectar con el servidor. ✧' }, { quoted: m })
+            if (!packId) {
+                throw new Error('No se pudo obtener el ID del pack')
             }
 
-            const d = detailJson.detalles
-            // Link directo al archivo oficial de Sticker.ly
             const fileUrl = `https://stickerly.pstatic.net/sticker_pack/${packId}/pack.exstickerpack`
 
-            const caption = `
-ʚ 𝓜𝓲𝓼𝓪 𝓑𝓸𝓽 𝓢𝓽𝓲𝓬𝓴𝓮𝓻𝓼 ɞ
-⊹₊ ˚‧︵‿₊୨୧₊‿︵‧ ˚ ₊⊹
+            const caption = `📦 *PAQUETE ENCONTRADO*
 
-✰ *Nombre:* ${d.name}
-   > ✿ *Autor:* ${d.author?.username || 'Pochis'}
-   > ✦ *Cantidad:* ${d.stickerCount} stickers
-   > ꕤ *Tipo:* ${d.isAnimated ? 'Animado' : 'Estático'}
+📝 Nombre: ${pack.name || 'Sin nombre'}
+👤 Autor: ${pack.author?.username || 'Desconocido'}
 
-> 🎀 *Instrucciones:* Abre el archivo de abajo para agregar todo el paquete a tu WhatsApp de una.
+✨ Abre el archivo para agregar el pack a WhatsApp`
 
-> Powered by 𝓜𝓲𝓼𝓪 ♡`.trim()
+            if (pack.thumbnailUrl) {
+                await conn.sendMessage(chat, {
+                    image: { url: pack.thumbnailUrl },
+                    caption
+                }, { quoted: m })
+            }
 
-            // Enviamos la portada
-            await conn.sendMessage(chat, { 
-                image: { url: d.thumbnailUrl }, 
-                caption: caption 
-            }, { quoted: m })
-
-            // 3. Enviamos el DOCUMENTO con el formato exacto que pediste
             await conn.sendMessage(chat, {
                 document: { url: fileUrl },
                 mimetype: 'application/octet-stream',
-                fileName: `${d.name.replace(/[^a-z0-9]/gi, '_')}.exstickerpack`,
-                caption: `> ✐  *Paquete listo para 𝓜𝓲𝓼𝓪*`
+                fileName: `${(pack.name || 'pack').replace(/[^a-z0-9]/gi, '_')}.exstickerpack`
             }, { quoted: m })
 
-            await conn.sendMessage(chat, { react: { text: '✅', key: m.key } })
+            await conn.sendMessage(chat, {
+                react: { text: '✅', key: m.key }
+            })
 
         } catch (e) {
-            console.error("ERROR 𝓜𝓲𝓼𝓪:", e)
-            await conn.sendMessage(chat, { text: '> ✐  *Error:* El servidor de 𝓜𝓲𝓼𝓪 está saturado. ✧' }, { quoted: m })
+            console.error('STICKERLY ERROR:', e)
+
+            await conn.sendMessage(chat, {
+                text: `❌ Error al obtener el paquete\n📌 ${e.message}`
+            }, { quoted: m })
         }
     }
 }
 
-export default stickerlyMisaFinal
+export default stickerlyCommand
