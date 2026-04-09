@@ -1,53 +1,53 @@
-/* * 👑 Stickerly Pack Downloader para Misa-Bot
- * Envía Info + Archivo .wastickers instalable
+/* * 👑 Stickerly Pack Downloader (Fix Error)
  * Autor: Yanniel & Gemini
  */
 import axios from 'axios'
 
 const slyCommand = {
     name: 'stickerly',
-    alias: ['sly', 'stickerpack', 'pack'],
+    alias: ['sly', 'pack'],
     category: 'downloader',
     noPrefix: true,
 
     run: async (conn, m, { text, usedPrefix, command }) => {
         const chat = m.key.remoteJid
-        const prefijo = usedPrefix || ''
-
-        if (!text) return conn.sendMessage(chat, { text: `🖤 *¿Qué paquete buscamos hoy?*\n\n> ✐ *Ejemplo:* \`${prefijo + command} Milo J\`` }, { quoted: m })
+        if (!text) return m.reply(`🖤 *¿Qué paquete buscamos?*\n> Ejemplo: ${usedPrefix + command} Milo J`)
 
         try {
             await conn.sendMessage(chat, { react: { text: '🔍', key: m.key } })
 
-            // 1. BUSCAR EL PAQUETE (Usamos la API de búsqueda que ya tienes)
+            // 1. BUSCAR EL PAQUETE
             const searchUrl = `https://api.brayanofc.shop/stickerly/search?query=${encodeURIComponent(text)}&key=api-gmnch`
-            const searchRes = await axios.get(searchUrl)
+            const { data: sData } = await axios.get(searchUrl)
             
-            if (!searchRes.data.status || !searchRes.data.resultados.length) {
-                await conn.sendMessage(chat, { react: { text: '❌', key: m.key } })
-                return conn.sendMessage(chat, { text: '> ✐ No encontré nada con ese nombre.' }, { quoted: m })
+            if (!sData.status || !sData.resultados.length) {
+                return conn.sendMessage(chat, { text: '❌ No encontré resultados.' }, { quoted: m })
             }
 
-            const pack = searchRes.data.resultados[0] // El más relevante
+            const pack = sData.resultados[0]
 
-            // 2. ENVIAR LA INFO ESTÉTICA
-            const infoText = `✧ ‧₊˚ *STICKERLY PACK* ୧ֹ˖ ⑅ ࣪⊹
-⊹₊ ˚‧︵‿₊୨୧₊‿︵‧ ˚ ₊⊹
+            // 2. OBTENER EL ARCHIVO (Aquí es donde ajustamos el path)
+            // Intentamos obtener el archivo descargable
+            const dlUrl = `https://api.brayanofc.shop/dl/stickerly?url=${encodeURIComponent(pack.url)}&key=api-gmnch`
+            
+            let packFile = null
+            try {
+                const { data: dData } = await axios.get(dlUrl)
+                // Ajusta esto según lo que responda la API de Brayan (puede ser .result o .url)
+                packFile = dData.result || dData.url || dData.data?.url
+            } catch (e) {
+                console.log("Error en paso de descarga, procediendo solo con info.")
+            }
 
-✰ \`Nombre\`: *${pack.name}*
-   › 👤 \`Autor\`: *${pack.author}*
-   › 📦 \`Cantidad\`: *${pack.stickerCount}*
-   › 🎞️ \`Tipo\`: *${pack.isAnimated ? 'Animado 🎞️' : 'Estático 🖼️'}*
-
-> ⏳ *Preparando archivo del paquete...*
-> Powered by 𝓜𝓲𝓼𝓪 ♡`.trim()
+            // 3. ENVIAR INFO
+            const infoText = `✧ ‧₊˚ *STICKERLY PACK* ୧ֹ˖ ⑅ ࣪⊹\n\n✰ \`Nombre\`: *${pack.name}*\n   › 👤 \`Autor\`: *${pack.author}*\n   › 📦 \`Cantidad\`: *${pack.stickerCount}*\n\n> 𝓜𝓲𝓼𝓪 ♡`.trim()
 
             await conn.sendMessage(chat, { 
                 text: infoText,
                 contextInfo: {
                     externalAdReply: {
                         title: pack.name,
-                        body: '𝓜𝓲𝓼𝓪 𝙎𝙩𝙞𝙘𝙠𝙚𝙧 𝘽𝙤𝙩 🖤',
+                        body: 'Click para ver en Sticker.ly 🖤',
                         thumbnailUrl: pack.thumbnailUrl,
                         sourceUrl: pack.url,
                         mediaType: 1,
@@ -56,32 +56,24 @@ const slyCommand = {
                 }
             }, { quoted: m })
 
-            // 3. OBTENER EL ARCHIVO DEL PAQUETE (.wastickers)
-            // Usamos la ruta de descarga de BrayanOFC
-            const dlUrl = `https://api.brayanofc.shop/dl/stickerly?url=${encodeURIComponent(pack.url)}&key=api-gmnch`
-            const dlRes = await axios.get(dlUrl)
-            
-            // La API de descarga suele devolver un campo 'result' con el link del archivo
-            const packFile = dlRes.data.result || dlRes.data.data?.url 
-
-            if (!packFile) {
-                return conn.sendMessage(chat, { text: '> ✐ No pude generar el archivo del paquete, pero puedes usar el link de arriba.' }, { quoted: m })
+            // 4. ENVIAR EL ARCHIVO SI EXISTE
+            if (packFile) {
+                await conn.sendMessage(chat, {
+                    document: { url: packFile },
+                    mimetype: 'application/octet-stream',
+                    fileName: `${pack.name}.wastickers`,
+                    caption: `> 🖤 *Pack listo para instalar.*`
+                }, { quoted: m })
+                await conn.sendMessage(chat, { react: { text: '✅', key: m.key } })
+            } else {
+                // Si no hay archivo, avisamos pero dejamos la info
+                await conn.sendMessage(chat, { text: `> ⚠️ *Nota:* No pude generar el archivo .wastickers, pero puedes instalarlo desde el link de arriba.` }, { quoted: m })
             }
-
-            // 4. ENVIAR EL PAQUETE COMO DOCUMENTO
-            await conn.sendMessage(chat, {
-                document: { url: packFile },
-                mimetype: 'application/octet-stream', // MIME necesario para paquetes de stickers
-                fileName: `${pack.name}.wastickers`,
-                caption: `> 🖤 *Aquí tienes tu paquete:* ${pack.name}\n> *Ábrelo con la app de Stickerly o súbelo directamente.*`
-            }, { quoted: m })
-
-            return await conn.sendMessage(chat, { react: { text: '✅', key: m.key } })
 
         } catch (err) {
             console.error(err)
             await conn.sendMessage(chat, { react: { text: '❌', key: m.key } })
-            return conn.sendMessage(chat, { text: '> ✐ Hubo un error crítico al procesar el paquete.' }, { quoted: m })
+            m.reply('✐ Hubo un problema con la API. Intenta de nuevo.')
         }
     }
 }
