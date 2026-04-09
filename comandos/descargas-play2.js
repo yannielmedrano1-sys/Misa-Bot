@@ -18,42 +18,40 @@ const play2Command = {
         if (!text) return conn.sendMessage(chat, { text: `🖤 *¿Qué video quieres ver?*\n\n> ✐ *Ejemplo:* \`${prefijo + command} Media Hora\`` }, { quoted: m })
 
         try {
+            // 🔍 1. Búsqueda
             const search = await yts(text)
             const v = search.videos[0]
-            if (!v) return conn.sendMessage(chat, { text: '> ✐ No encontré nada relacionado con eso.' }, { quoted: m })
+            if (!v) return conn.sendMessage(chat, { text: '> ✐ No encontré nada.' }, { quoted: m })
 
             const url = v.url
             let videoUrl = null
             let filesize = 'Variable'
 
+            // 🚀 --- ARSENAL DE APIS (DIRECTAS AL GRANO) ---
             const apiSources = [
-                { url: `https://api.brayanofc.shop/dl/ytmp4v2?url=${encodeURIComponent(url)}&key=api-gmnch`, path: (d) => d.data?.dl, sizePath: (d) => d.data?.size },
-                { url: `https://api.nexylight.xyz/dl/ytmp4?id=${v.videoId}&quality=720&key=nexy-9ccbbb`, path: (d) => d.download?.url, sizePath: (d) => d.download?.size },
-                { url: `https://api.brayanofc.shop/dl/youtubev2?url=${encodeURIComponent(url)}&key=api-gmnch`, path: (d) => d.results?.formats.find(f => f.itag == '18' || f.label.includes('With Sound'))?.url, sizePath: (d) => null },
-                { url: `https://api.boxmine.xyz/down/ytvideo?url=${encodeURIComponent(url)}`, path: (d) => d.resultado?.url_dl, sizePath: (d) => d.resultado?.size },
-                { url: `https://api.vreden.xyz/api/v1/download/youtube/video?url=${encodeURIComponent(url)}`, path: (d) => d.result?.download?.url, sizePath: (d) => d.result?.download?.size }
+                // Brayan ytmp4v2 (Basado en el JSON que me diste)
+                { url: `https://api.brayanofc.shop/dl/ytmp4v2?url=${encodeURIComponent(url)}&key=api-gmnch`, path: (d) => d.data?.dl, size: (d) => d.data?.quality },
+                // Nexylight (720p)
+                { url: `https://api.nexylight.xyz/dl/ytmp4?id=${v.videoId}&quality=720&key=nexy-9ccbbb`, path: (d) => d.download?.url, size: (d) => d.download?.quality },
+                // Brayan youtubev2 (Filtro Mp4 con sonido)
+                { url: `https://api.brayanofc.shop/dl/youtubev2?url=${encodeURIComponent(url)}&key=api-gmnch`, path: (d) => d.results?.formats.find(f => f.itag == '18' || f.label.includes('Video'))?.url, size: (d) => '720p' },
+                // Brayan ytdl (Backup rápido)
+                { url: `https://api.brayanofc.shop/dl/ytdl?url=${encodeURIComponent(url)}&type=mp4&key=api-gmnch`, path: (d) => d.result?.download, size: (d) => d.result?.quality }
             ]
 
             for (const source of apiSources) {
                 try {
-                    const res = await axios.get(source.url, { timeout: 5000 })
+                    const res = await axios.get(source.url, { timeout: 8000 })
                     const link = source.path(res.data)
                     if (link) {
                         videoUrl = link
-                        const rawSize = source.sizePath ? source.sizePath(res.data) : null
-                        if (rawSize && (rawSize.includes('MB') || rawSize.includes('GB'))) {
-                            filesize = rawSize
-                            const sizeNum = parseFloat(rawSize.replace(/[^0-9.]/g, ''))
-                            if (rawSize.includes('GB') || sizeNum > 150) {
-                                return conn.sendMessage(chat, { text: `⚠️ *Demasiado pesado*\n\n> ✿ El video pesa *${rawSize}* y el límite es de 150MB. 🖤` }, { quoted: m })
-                            }
-                        }
+                        filesize = source.size(res.data) || 'Variable'
                         break 
                     }
                 } catch { continue }
             }
 
-            if (!videoUrl) throw new Error()
+            if (!videoUrl) throw new Error('No link found')
 
             const formatViews = (n) => {
                 if (n >= 1e9) return (n / 1e9).toFixed(1) + 'B'
@@ -62,11 +60,12 @@ const play2Command = {
                 return n.toLocaleString()
             }
 
+            // 📤 INFO DEL VIDEO
             const textoPlay = `✧ ‧₊˚ *YOUTUBE VIDEO* ୧ֹ˖ ⑅ ࣪⊹
 ⊹₊ ˚‧︵‿₊୨୧₊‿︵‧ ˚ ₊⊹
 ✰ Título: ${v.title}
-   › ✦ \`Peso\`: *${filesize}*
-   › ⏱ \`Duración\`: *${v.timestamp || v.duration}*
+   › ✦ \`Calidad\`: *${filesize}*
+   › ⏱ \`Duración\`: *${v.timestamp}*
    › ꕤ \`Vistas\`: *${formatViews(v.views)}*
    › ❖ \`Link\`: *${v.url}*
 
@@ -77,7 +76,7 @@ const play2Command = {
                 contextInfo: {
                     externalAdReply: {
                         title: v.title,
-                        body: '𝓜𝓲𝓼𝓪 𝘿𝙤𝙬𝙣loader 🖤',
+                        body: '𝓜𝓲𝓼𝓪 𝘿𝙤𝙬𝙣𝙡𝙤𝙖𝙙𝙚𝙧 🖤',
                         thumbnailUrl: v.image,
                         sourceUrl: url,
                         mediaType: 1,
@@ -86,6 +85,7 @@ const play2Command = {
                 }
             }, { quoted: m })
 
+            // 🎥 ENVÍO DEL VIDEO
             return await conn.sendMessage(chat, { 
                 video: { url: videoUrl },
                 caption: `> 🖤 *${v.title}*`,
@@ -94,7 +94,8 @@ const play2Command = {
             }, { quoted: m })
 
         } catch (err) {
-            return conn.sendMessage(chat, { text: '> ✐ Error al obtener el video. Reintenta.' }, { quoted: m })
+            console.error(err)
+            return conn.sendMessage(chat, { text: '> ✐ Misa no pudo descargar el video. Intenta con otro nombre o link.' }, { quoted: m })
         }
     }
 }
