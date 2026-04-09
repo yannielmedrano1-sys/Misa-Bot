@@ -1,9 +1,15 @@
-/* Código optimizado por Yanniel & Gemini
-   Estructura de APIs: BrayanOFC (ytmp4v2, youtubev2, ytdl)
-   https://github.com/yannielmedrano1-sys
-*/
-import axios from 'axios'
-import yts from 'yt-search'
+/* * Código optimizado para Misa-Bot
+ * Incluye Fallback de seguridad y APIs de alta disponibilidad
+ * Autor: Yanniel & Gemini
+ */
+import axios from 'axios';
+import yts from 'yt-search';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import fs from 'fs';
+import path from 'path';
+
+const execAsync = promisify(exec);
 
 const play2Command = {
     name: 'play2',
@@ -12,107 +18,150 @@ const play2Command = {
     noPrefix: true,
 
     run: async (conn, m, { text, usedPrefix, command }) => {
-        const chat = m.key.remoteJid
-        const prefijo = usedPrefix || ''
+        const chat = m.key.remoteJid;
+        const prefijo = usedPrefix || '';
 
-        if (!text) return conn.sendMessage(chat, { text: `🖤 *¿Qué video buscamos hoy?*\n\n> ✐ *Ejemplo:* \`${prefijo + command} Media Hora\`` }, { quoted: m })
+        if (!text) {
+            return conn.sendMessage(chat, { 
+                text: `🖤 *¿Qué video quieres descargar?*\n\n> ✐ *Ejemplo:* \`${prefijo + command} Media Hora\`` 
+            }, { quoted: m });
+        }
 
         try {
-            // 🔍 1. Búsqueda
-            const search = await yts(text)
-            const v = search.videos[0]
-            if (!v) return conn.sendMessage(chat, { text: '> ✐ No encontré nada, loco.' }, { quoted: m })
+            // Reacción segura
+            await conn.sendMessage(chat, { react: { text: '🔍', key: m.key } });
+            
+            let search = await yts(text);
+            const v = search.videos[0];
+            
+            if (!v) {
+                return conn.sendMessage(chat, { text: '> ✐ No encontré el video.' }, { quoted: m });
+            }
 
-            const url = v.url
-            let videoUrl = null
-            let selectedQuality = '1080p'
+            const url = v.url;
+            const videoId = v.videoId;
+            
+            // Límite de 30 min para evitar ban del número
+            const durationParts = v.timestamp.split(':').map(Number);
+            const totalSeconds = durationParts.length === 3 
+                ? durationParts[0] * 3600 + durationParts[1] * 60 + durationParts[2]
+                : durationParts[0] * 60 + durationParts[1];
+            
+            if (totalSeconds > 1800) {
+                return conn.sendMessage(chat, { text: '> ⚠️ Video demasiado largo (>30 min).' }, { quoted: m });
+            }
 
-            // ⏳ Reacción de procesando (Forma correcta Baileys)
-            await conn.sendMessage(chat, { react: { text: '⏳', key: m.key } })
+            await conn.sendMessage(chat, { react: { text: '⏳', key: m.key } });
 
-            // 🚀 --- ARSENAL DE APIS (RUTAS EXACTAS SEGÚN TUS JSON) ---
+            let videoUrl = null;
+            let usedApi = '';
+
+            // 🚀 APIs ORDENADAS POR EFECTIVIDAD PARA MISA-BOT
             const apiSources = [
-                // 1. ytmp4v2 (Prioridad 1080p - Ruta: data.dl)
-                { 
-                    url: `https://api.brayanofc.shop/dl/ytmp4v2?url=${encodeURIComponent(url)}&quality=1080&key=api-gmnch`, 
-                    path: (d) => d.data?.dl 
+                {
+                    name: 'Brayan-API',
+                    url: `https://api.brayanofc.shop/dl/youtubev2?url=${encodeURIComponent(url)}&key=api-gmnch`,
+                    extractor: (d) => d?.results?.formats?.find(f => f.quality === '720p')?.url || d?.results?.formats[0]?.url
                 },
-                // 2. youtubev2 (Ruta: results.formats -> El que tenga sonido)
-                { 
-                    url: `https://api.brayanofc.shop/dl/youtubev2?url=${encodeURIComponent(url)}&key=api-gmnch`, 
-                    path: (d) => d.results?.formats?.find(f => f.label.includes('With Sound') || f.itag == '18')?.url 
+                {
+                    name: 'Cobalt-Tools',
+                    url: `https://api.cobalt.tools/api/download`,
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    data: { url: url, vQuality: '720', downloadMode: 'video' },
+                    extractor: (d) => d?.url
                 },
-                // 3. ytdl (Backup - Ruta: result.download)
-                { 
-                    url: `https://api.brayanofc.shop/dl/ytdl?url=${encodeURIComponent(url)}&type=mp4&key=api-gmnch`, 
-                    path: (d) => d.result?.download 
+                {
+                    name: 'Nexy-DL',
+                    url: `https://api.nexylight.xyz/dl/ytmp4?id=${videoId}&quality=720&key=nexy-9ccbbb`,
+                    extractor: (d) => d?.download?.url || d?.url
                 }
-            ]
+            ];
 
             for (const source of apiSources) {
                 try {
-                    const res = await axios.get(source.url, { timeout: 15000 })
-                    const link = source.path(res.data)
-                    if (link) {
-                        videoUrl = link
-                        break 
+                    let res;
+                    if (source.method === 'POST') {
+                        res = await axios.post(source.url, source.data, { headers: source.headers, timeout: 15000 });
+                    } else {
+                        res = await axios.get(source.url, { timeout: 15000 });
                     }
-                } catch { continue }
+                    
+                    const link = source.extractor(res.data);
+                    if (link && link.startsWith('http')) {
+                        videoUrl = link;
+                        usedApi = source.name;
+                        break;
+                    }
+                } catch (e) { continue; }
+            }
+
+            // 🛟 FALLBACK: yt-dlp (Solo si tienes el binario instalado en el server)
+            if (!videoUrl) {
+                try {
+                    const tempFile = path.join(process.cwd(), `tmp_${Date.now()}.mp4`);
+                    await execAsync(`yt-dlp -f "mp4[height<=720]" --max-filesize 50M -o "${tempFile}" "${url}"`);
+                    if (fs.existsSync(tempFile)) {
+                        videoUrl = tempFile;
+                        usedApi = 'Local-Server';
+                    }
+                } catch (fallbackErr) {
+                    console.error('Fallback falló');
+                }
             }
 
             if (!videoUrl) {
-                await conn.sendMessage(chat, { react: { text: '❌', key: m.key } })
-                return conn.sendMessage(chat, { text: '> ✐ No pude conseguir el link de descarga. Intenta con otro video.' }, { quoted: m })
+                await conn.sendMessage(chat, { react: { text: '❌', key: m.key } });
+                return conn.sendMessage(chat, { text: '> ✐ Todas las APIs fallaron. Reintenta en unos minutos.' });
             }
 
-            // 📊 Formatear vistas
-            const formatViews = (n) => {
-                if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M'
-                if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K'
-                return n.toLocaleString()
-            }
-
-            // 📤 INFO DEL VIDEO
             const textoPlay = `✧ ‧₊˚ *YOUTUBE VIDEO* ୧ֹ˖ ⑅ ࣪⊹
-⊹₊ ˚‧︵‿₊୨୧₊‿︵‧ ˚ ₊⊹
 ✰ Título: ${v.title}
-   › ✦ \`Calidad\`: *${selectedQuality}*
    › ⏱ \`Duración\`: *${v.timestamp}*
-   › ꕤ \`Vistas\`: *${formatViews(v.views)}*
-   › ❖ \`Link\`: *${v.url}*
+   › 🔧 \`Fuente\`: *${usedApi}*
 
-> Powered by 𝓜𝓲𝓼𝓪 ♡`.trim()
+> Powered by 𝓜𝓲𝓼𝓪 ♡`.trim();
 
             await conn.sendMessage(chat, { 
                 text: textoPlay,
                 contextInfo: {
                     externalAdReply: {
                         title: v.title,
-                        body: '𝓜𝓲𝓼𝓪 𝘿𝙤𝙬𝙣𝙡𝙤𝙖𝙙𝙚rer 🖤',
+                        body: `𝓜𝓲𝓼𝓪 𝙃𝘿 𝘿𝙤𝙬𝙣𝙡𝙤𝙖𝙙𝙚R 🖤`,
                         thumbnailUrl: v.image,
                         sourceUrl: url,
                         mediaType: 1,
+                        showAdAttribution: true,
                         renderLargerThumbnail: true
                     }
                 }
-            }, { quoted: m })
+            }, { quoted: m });
 
-            // 🎥 ENVÍO DEL VIDEO
-            await conn.sendMessage(chat, { 
-                video: { url: videoUrl },
-                caption: `> 🖤 *${v.title}*`,
-                mimetype: 'video/mp4',
-                fileName: `${v.title}.mp4`
-            }, { quoted: m })
+            // ENVÍO FINAL
+            if (videoUrl.includes('tmp_')) {
+                // Envío desde archivo local
+                await conn.sendMessage(chat, { 
+                    video: fs.readFileSync(videoUrl), 
+                    caption: `> 🖤 *${v.title}*`,
+                    mimetype: 'video/mp4'
+                }, { quoted: m });
+                fs.unlinkSync(videoUrl); // Borrar basura
+            } else {
+                // Envío desde URL
+                await conn.sendMessage(chat, { 
+                    video: { url: videoUrl }, 
+                    caption: `> 🖤 *${v.title}*`,
+                    mimetype: 'video/mp4'
+                }, { quoted: m });
+            }
 
-            return await conn.sendMessage(chat, { react: { text: '✅', key: m.key } })
+            await conn.sendMessage(chat, { react: { text: '✅', key: m.key } });
 
         } catch (err) {
-            console.error(err)
-            await conn.sendMessage(chat, { react: { text: '❌', key: m.key } })
-            return conn.sendMessage(chat, { text: '> ✐ Hubo un error crítico al procesar la descarga.' }, { quoted: m })
+            console.error(err);
+            await conn.sendMessage(chat, { react: { text: '❌', key: m.key } });
         }
     }
-}
+};
 
-export default play2Command
+export default play2Command;
