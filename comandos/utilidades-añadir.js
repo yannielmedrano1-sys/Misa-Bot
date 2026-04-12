@@ -15,7 +15,7 @@ const addCommand = {
 
         // 1. Validar que tengamos Número y Link
         if (args.length < 2) {
-            return reply(`✧ ‧₊˚ *ADD SYSTEM* ୧ֹ˖ ⑅ ࣪⊹\n\n> ✐ *Faltan datos para procesar.*\n\n✰ \`Uso\`: *${usedPrefix + command} número link*\n› *Ejemplo:* \`${usedPrefix + command} 54911xxxx https://chat.whatsapp.com/xxx\``)
+            return reply(`✧ ‧₊˚ *ADD SYSTEM* ୧ֹ˖ ⑅ ࣪⊹\n\n> ✐ *Faltan datos para procesar.*\n\n✰ \`Uso\`: *${command} número link*\n› *Ejemplo:* \`${command} 54911xxxx https://chat.whatsapp.com/xxx\``)
         }
 
         let num = args[0].replace(/[^0-9]/g, '')
