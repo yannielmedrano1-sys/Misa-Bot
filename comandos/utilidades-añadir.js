@@ -1,5 +1,5 @@
-/* * 👑 Group Adder Force para Misa-Bot
- * Une al usuario directamente usando poder de Admin.
+/* * 👑 Force Add System para Misa-Bot
+ * Une al usuario o envía link si hay candado de privacidad.
  * Autor: Yanniel & Gemini
  */
 
@@ -13,71 +13,66 @@ const addCommand = {
         const chat = m.key.remoteJid
         const reply = (txt) => conn.sendMessage(chat, { text: txt }, { quoted: m })
 
-        // 1. Validar que tengamos Número y Link del grupo
+        // 1. Validar argumentos
         if (args.length < 2) {
-            return reply(`✧ ‧₊˚ *FORCE ADD* ୧ֹ˖ ⑅ ࣪⊹\n\n> ✐ *Faltan datos.*\n\n✰ \`Uso\`: *${usedPrefix + command} número link*\n› *Ejemplo:* \`${usedPrefix + command} 54911xxxx https://chat.whatsapp.com/xxx\``)
+            return reply(`✧ ‧₊˚ *ADD SYSTEM* ୧ֹ˖ ⑅ ࣪⊹\n\n> ✐ *Faltan datos.*\n\n✰ \`Uso\`: *${usedPrefix + command} número link*\n› *Ejemplo:* \`${usedPrefix + command} 54911xxxx https://chat.whatsapp.com/xxx\``)
         }
 
         let num = args[0].replace(/[^0-9]/g, '')
         let inviteLink = args[1]
         const userJid = num + '@s.whatsapp.net'
 
-        // Extraer el ID del grupo a partir del link
+        // Extraer código del link
         let groupCode = inviteLink.split('https://chat.whatsapp.com/')[1]
-        if (!groupCode) return reply('> ✐ \`Error:\` El link del grupo no es válido.')
+        if (!groupCode) return reply('> ✐ \`Error:\` El enlace no es un link de grupo válido.')
 
         try {
             await conn.sendMessage(chat, { react: { text: '⏳', key: m.key } })
 
-            // 2. Obtener el JID del grupo usando el link
+            // 2. Obtener JID del grupo y refrescar Metadata (Clave para que detecte Admin)
             const groupInfo = await conn.groupGetInviteInfo(groupCode)
             const groupJid = groupInfo.id
 
-            if (!groupJid) return reply('> ✐ No pude encontrar el grupo con ese enlace.')
+            // Forzar actualización de participantes para asegurar que el bot sepa que es Admin
+            const metadata = await conn.groupMetadata(groupJid).catch(() => null)
+            if (!metadata) return reply('> ✐ No pude acceder a la información del grupo. ¿El bot está dentro?')
 
-            // 3. INTENTAR UNIR DIRECTO (Acción de Admin)
-            // Nota: El bot debe estar en el grupo y ser admin.
+            // 3. INTENTAR AGREGAR (EL EMPUJÓN)
             const response = await conn.groupParticipantsUpdate(groupJid, [userJid], 'add')
 
-            /* response[0].status:
-               200 = Éxito total
-               403 = Privacidad activada (No se puede forzar)
-               408 = El usuario acaba de salir del grupo recientemente
-            */
-            
-            if (response[0].status === 200) {
+            // Verificamos el estado de la respuesta
+            const result = response[0]
+
+            if (result.status === '200') {
                 await conn.sendMessage(chat, { react: { text: '✅', key: m.key } })
-                return reply(`✨ *¡@${num} ha sido unido al grupo con éxito!*`)
+                return reply(`✨ *¡@${num} ha sido unido directamente!*`)
             } 
             
-            if (response[0].status === 403) {
-                await conn.sendMessage(chat, { react: { text: '📩', key: m.key } })
-                
-                // 4. FALLBACK: Si no se puede por la fuerza, enviamos link al privado
-                const msgInvite = `✧ ‧₊˚ *INVITACIÓN A GRUPO* ୧ֹ˖ ⑅ ࣪⊹\n\n✰ \`Hola!\`: Te intentaron agregar a un grupo, pero tu privacidad lo impidió.\n\n   › 🔗 \`Link:\`: ${inviteLink}\n\n> 𝓜𝓲𝓼𝓪 ♡`.trim()
+            // 4. FALLBACK: PRIVACIDAD O ERROR (Status 403, 408, 409, etc.)
+            await conn.sendMessage(chat, { react: { text: '📩', key: m.key } })
 
-                await conn.sendMessage(userJid, { 
-                    text: msgInvite,
-                    contextInfo: {
-                        externalAdReply: {
-                            title: 'INVITACIÓN PENDIENTE 🖤',
-                            body: 'Toca para unirte',
-                            thumbnailUrl: 'https://cdn-icons-png.flaticon.com/512/5968/5968841.png',
-                            sourceUrl: inviteLink,
-                            mediaType: 1
-                        }
+            const msgInvite = `✧ ‧₊˚ *INVITACIÓN A GRUPO* ୧ֹ˖ ⑅ ࣪⊹\n⊹₊ ˚‧︵‿₊୨୧₊‿︵‧ ˚ ₊⊹\n\n✰ \`Hola!\`: Te intentaron agregar al grupo *${metadata.subject}*.\n\n   › 🔗 \`Link:\`: ${inviteLink}\n\n> *Toca el botón para unirte manualmente.*\n> Powered by 𝓜𝓲𝓼𝓪 ♡`.trim()
+
+            await conn.sendMessage(userJid, { 
+                text: msgInvite,
+                contextInfo: {
+                    externalAdReply: {
+                        title: 'INVITACIÓN PENDIENTE 🖤',
+                        body: `Grupo: ${metadata.subject}`,
+                        thumbnailUrl: await conn.profilePictureUrl(groupJid, 'image').catch(() => 'https://i.imgur.com/8N76999.png'),
+                        sourceUrl: inviteLink,
+                        mediaType: 1,
+                        renderLargerThumbnail: true
                     }
-                })
+                }
+            })
 
-                return reply(`⚠️ @${num} tiene su privacidad activa.\n> *Le envié el link al privado porque no pude meterlo a la fuerza.*`)
-            }
-
-            return reply(`> ✐ No se pudo agregar al usuario (Status: ${response[0].status})`)
+            return reply(`⚠️ *Privacidad detectada:* No pude forzar la entrada de @${num}, pero ya le envié el link por privado.`)
 
         } catch (err) {
-            console.error(err)
+            console.error('Error en Force Add:', err)
             await conn.sendMessage(chat, { react: { text: '❌', key: m.key } })
-            return reply(`> ✐ \`Error:\` Asegúrate de que el bot sea *Admin* en ese grupo.`)
+            return reply(`> ✐ \`Error:\` Asegúrate de que el bot sea *Admin* en el grupo del link.`)
         }
     }
 }
