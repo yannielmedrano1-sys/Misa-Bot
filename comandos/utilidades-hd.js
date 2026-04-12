@@ -32,7 +32,7 @@ const hdCommand = {
         const mime = q?.imageMessage?.mimetype || q?.documentMessage?.mimetype || ''
 
         if (!/image/.test(mime)) {
-            return reply(`✧ ‧₊˚ *UPSCALER IA* ୧ֹ˖ ⑅ ࣪⊹\n\n> ✐ *Responde a una imagen para mejorar su calidad.*\n\n> 💡 *Tip:* Puedes usar \`${usedPrefix + command} 2\` para mayor potencia.`)
+            return reply(`✧ ‧₊˚ *UPSCALER IA* ୧ֹ˖ ⑅ ࣪⊹\n\n> ✐ *Responde a una imagen para mejorar su calidad.*\n\n> 💡 *Tip:* Puedes usar \`${command} 2\` para mayor potencia.`)
         }
 
         await conn.sendMessage(chat, { react: { text: '🕔', key: m.key } })
@@ -79,7 +79,7 @@ const hdCommand = {
 
 ✰ \`Método\`: *${method}x*
    › 📊 \`Calidad\`: *${size.toUpperCase()}*
-   › 🤖 \`IA\`: *Ihancer Engine*
+   
 
 > ⚡ *Imagen optimizada con éxito.*
 > Powered by 𝓜𝓲𝓼𝓪 ♡`.trim()
