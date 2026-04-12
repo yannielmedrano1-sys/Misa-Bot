@@ -1,213 +1,81 @@
-import crypto from 'crypto'
-import fileTypePkg from 'file-type'
-import { promises as fsp } from 'fs'
-import os from 'os'
-import path from 'path'
-import { spawn } from 'child_process'
+// category: utilidades
+case 'hd': {
+    const desc = 'Mejora la calidad de una imagen'
 
-const { fileTypeFromBuffer } = fileTypePkg
-const fetchFn = fetch
+    let method = 1
+    let size = 'low'
 
-const hdCommand = {
-    name: 'hd',
-    alias: ['enhance', 'remini'],
-    category: 'utils',
-    noPrefix: true,
+    if (args[0] && ['1', '2', '3', '4'].includes(args[0])) {
+        method = parseInt(args[0])
+        if (method === 1) size = 'low'
+        else if (method === 2) size = 'medium'
+        else if (method === 3 || method === 4) size = 'high'
+    }
 
-    run: async (conn, m, { command }) => {
-        const chat = m.key.remoteJid
+    const q = msg.message?.extendedTextMessage?.contextInfo?.quotedMessage || msg.message
+    const mime = q?.imageMessage?.mimetype || q?.documentMessage?.mimetype || ''
 
-        try {
-            const q = m.quoted || m
-            const mime = q?.mimetype || q?.msg?.mimetype || ''
+    if (!/image/.test(mime)) {
+        return reply(* Responde a una imagen para mejorar la* \`Calidad\`)
+    }
 
-            if (!mime) {
-                return conn.sendMessage(chat, {
-                    text: `🖼️ Responde a una imagen con *${command}*`
-                }, { quoted: m })
-            }
+    await conn.sendMessage(from, { react: { text: '🕔', key: msg.key } })
 
-            if (!/^image\/(jpe?g|png|webp)$/i.test(mime)) {
-                return conn.sendMessage(chat, {
-                    text: `❌ Formato no compatible:\n${mime}`
-                }, { quoted: m })
-            }
-
-            await conn.sendMessage(chat, {
-                react: { text: '🕒', key: m.key }
-            })
-
-            const buffer = await q.download?.()
-
-            if (!buffer || !Buffer.isBuffer(buffer) || buffer.length < 10) {
-                throw new Error('No se pudo descargar la imagen')
-            }
-
-            const ft = await safeFileType(buffer)
-            const inputMime = ft?.mime || mime || 'image/jpeg'
-
-            const result = await vectorinkEnhanceFromBuffer(buffer, inputMime)
-
-            if (!result?.ok || !result?.buffer) {
-                throw new Error(
-                    result?.error?.code ||
-                    result?.error?.step ||
-                    result?.error?.message ||
-                    'Error desconocido'
-                )
-            }
-
-            await conn.sendMessage(chat, {
-                image: result.buffer,
-                caption: '✨ Imagen mejorada con éxito'
-            }, { quoted: m })
-
-            await conn.sendMessage(chat, {
-                react: { text: '✅', key: m.key }
-            })
-
-        } catch (e) {
-            console.error('HD ERROR:', e)
-
-            await conn.sendMessage(chat, {
-                react: { text: '✖️', key: m.key }
-            })
-
-            await conn.sendMessage(chat, {
-                text: `❌ Error al mejorar imagen\n📌 ${e.message}`
-            }, { quoted: m })
+    try {
+        const { downloadContentFromMessage } = await import('@whiskeysockets/baileys')
+        const messageType = q.imageMessage ? 'image' : 'document'
+        const stream = await downloadContentFromMessage(q[messageType + 'Message'], messageType)
+        let buffer = Buffer.from([])
+        for await (const chunk of stream) {
+            buffer = Buffer.concat([buffer, chunk])
         }
-    }
-}
 
-export default hdCommand
+        await conn.sendMessage(from, { react: { text: '✨', key: msg.key } })
 
-async function safeFileType(buf) {
-    try {
-        return await fileTypeFromBuffer(buf)
-    } catch {
-        return null
-    }
-}
+        async function ihancer(buffer, { method = 1, size = 'low' } = {}) {
+            if (!buffer || !Buffer.isBuffer(buffer)) throw new Error('Imagen requerida');
 
-async function safeJson(res) {
-    const t = await res.text().catch(() => '')
-    try {
-        return JSON.parse(t)
-    } catch {
-        return { raw: t }
-    }
-}
+            const FormData = (await import('form-data')).default
+            const form = new FormData();
+            form.append('method', method.toString());
+            form.append('is_pro_version', 'false');
+            form.append('is_enhancing_more', 'false');
+            form.append('max_image_size', size);
+            form.append('file', buffer, { filename: file_${Date.now()}.jpg, contentType: 'image/jpeg' });
 
-function extFromMime(mime) {
-    if (/png/i.test(mime)) return 'png'
-    if (/webp/i.test(mime)) return 'webp'
-    return 'jpg'
-}
+            const { data } = await axios.post('https://ihancer.com/api/enhance', form, {
+                headers: {
+                    ...form.getHeaders(),
+                    'accept-encoding': 'gzip',
+                    'host': 'ihancer.com',
+                    'user-agent': 'Dart/3.5 (dart:io)'
+                },
+                responseType: 'arraybuffer',
+                timeout: 60000
+            });
 
-function runFfmpeg(args, timeoutMs = 60000) {
-    return new Promise((resolve, reject) => {
-        const p = spawn('ffmpeg', args, { stdio: ['ignore', 'ignore', 'pipe'] })
+            return Buffer.from(data);
+        }
 
-        let err = ''
+        const enhancedBuffer = await ihancer(buffer, { method: method, size: size })
 
-        const t = setTimeout(() => {
-            try { p.kill('SIGKILL') } catch {}
-            reject(new Error('ffmpeg timeout'))
-        }, timeoutMs)
+        const encabezado = `┏━━━━❏
+┃ \Método\: ${method}x
+┃ \Calidad\: ${size}
+┃ \Mejorado por\: IA-Mejora
+┗━━❏`
 
-        p.stderr.on('data', d => err += d.toString())
+        await conn.sendMessage(from, {
+            image: enhancedBuffer,
+            caption: encabezado
+        }, { quoted: msg })
 
-        p.on('error', e => {
-            clearTimeout(t)
-            reject(e)
-        })
-
-        p.on('close', code => {
-            clearTimeout(t)
-            if (code === 0) resolve(true)
-            else reject(new Error(err || `ffmpeg failed (${code})`))
-        })
-    })
-}
-
-async function webpToPngWithFfmpeg(webpBuf, tmpDir) {
-    const inPath = path.join(tmpDir, `hd_${Date.now()}.webp`)
-    const outPath = path.join(tmpDir, `hd_${Date.now()}.png`)
-
-    await fsp.writeFile(inPath, webpBuf)
-
-    try {
-        await runFfmpeg(['-y', '-i', inPath, '-frames:v', '1', outPath])
-
-        const png = await fsp.readFile(outPath)
-
-        return { ok: true, png }
+        await conn.sendMessage(from, { react: { text: '✅', key: msg.key } })
 
     } catch (e) {
-        return { ok: false, error: e.message }
-
-    } finally {
-        try { await fsp.unlink(inPath) } catch {}
-        try { await fsp.unlink(outPath) } catch {}
+        console.error('Error en hd:', e)
+        reply(> ✐ \`Error:\ ${e.message}`)
+        await conn.sendMessage(from, { react: { text: '❌', key: msg.key } })
     }
-}
-
-async function vectorinkEnhanceFromBuffer(inputBuf, inputMime) {
-    const API = 'https://us-central1-vector-ink.cloudfunctions.net/upscaleImage'
-
-    const tmpDir = path.join(os.tmpdir(), 'vectorink')
-    const tmpPath = path.join(tmpDir, `img_${Date.now()}.${extFromMime(inputMime)}`)
-
-    const out = { ok: false }
-
-    try {
-        await fsp.mkdir(tmpDir, { recursive: true })
-        await fsp.writeFile(tmpPath, inputBuf)
-
-        const b64 = (await fsp.readFile(tmpPath)).toString('base64')
-
-        const r = await fetchFn(API, {
-            method: 'POST',
-            headers: {
-                'content-type': 'application/json',
-                origin: 'https://vectorink.io',
-                referer: 'https://vectorink.io/'
-            },
-            body: JSON.stringify({
-                data: { image: b64 }
-            })
-        })
-
-        const j = await safeJson(r)
-
-        const innerText = j?.result
-        const inner = JSON.parse(innerText)
-
-        const webpB64 = inner?.image?.b64_json
-
-        if (!webpB64) {
-            throw new Error('La API no devolvió imagen')
-        }
-
-        const webpBuf = Buffer.from(webpB64, 'base64')
-
-        const conv = await webpToPngWithFfmpeg(webpBuf, tmpDir)
-
-        if (!conv.ok) {
-            throw new Error(conv.error)
-        }
-
-        out.ok = true
-        out.buffer = conv.png
-
-        return out
-
-    } catch (e) {
-        out.error = { message: e.message }
-        return out
-
-    } finally {
-        try { await fsp.unlink(tmpPath) } catch {}
-    }
+    break
 }
