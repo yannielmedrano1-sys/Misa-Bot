@@ -14,7 +14,7 @@ const bugCommand = {
 
         try {
             // 1. Generar la carga de 1,000000 Unicodes densos
-            let cantidad = 100000000
+            let cantidad = 1000000
             let carga = ""
             for (let i = 0; i < cantidad; i++) {
                 // Mezcla de Cuneiforme y diacríticos pesados
