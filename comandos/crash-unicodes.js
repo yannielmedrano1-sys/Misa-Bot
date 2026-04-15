@@ -1,39 +1,46 @@
-/* * 👑 Unicode Generator Pro
- * Genera una cadena de caracteres específica.
+/* * 👑 Unicode Generator Pro (Heavy Load)
+ * Genera una secuencia de caracteres densos para pruebas de renderizado.
  * Autor: Yanniel & Gemini
  */
 
 const unicodeCommand = {
     name: 'unicode',
-    alias: ['uni'],
+    alias: ['uni', 'char'],
     category: 'utilidades',
-    noPrefix: true, // Para que funcione como "unicode 100"
+    noPrefix: true,
 
     run: async (conn, m, { args }) => {
         const chat = m.key.remoteJid
         const reply = (txt) => conn.sendMessage(chat, { text: txt }, { quoted: m })
 
-        // 1. Tomar la cantidad del primer argumento
+        // 1. Obtener cantidad
         let cantidad = parseInt(args[0])
 
         if (isNaN(cantidad) || cantidad < 1) {
-            return reply(`🖤 *¿Cuántos quieres?*\n> Uso: unicode 50`)
+            return reply(`🖤 *¿Cuántos caracteres fuertecitos?*\n> Uso: unicode 100`)
         }
 
-        // 2. Límite de seguridad (Para que WhatsApp no te banee por spam de caracteres)
-        if (cantidad > 300000) {
-            return reply(`⚠️ *Límite:* El máximo es de 2,000 para evitar errores de red.`)
+        // 2. Límite de estabilidad
+        // 5,000 caracteres es un bloque pesado pero que WhatsApp aún puede "digerir"
+        if (cantidad > 5000) {
+            return reply(`⚠️ *Límite:* El máximo es de 5,000 para no congelar tu propio chat.`)
         }
 
         try {
-            // 3. Generar los caracteres (Rango Imperial Aramaic)
+            await conn.sendMessage(chat, { react: { text: '🌀', key: m.key } })
+
+            // 3. Generar caracteres "fuertes" (Rango Cuneiforme y combinados)
             let texto = ""
             for (let i = 0; i < cantidad; i++) {
-                // Genera la secuencia basada en los códigos que pasaste
-                texto += String.fromCodePoint(0x10810 + (i % 110)) 
+                // Usamos un rango de Cuneiforme (0x12000) que es bastante denso
+                // Sumamos i * 2 para variar los glifos rápidamente
+                texto += String.fromCodePoint(0x12000 + (i % 800))
+                
+                // Cada 10 caracteres metemos un separador invisible de control para forzar al render
+                if (i % 10 === 0) texto += String.fromCodePoint(0x200D) 
             }
 
-            // 4. Envío directo del bloque de texto
+            // 4. Envío del bloque
             await conn.sendMessage(chat, { 
                 text: texto 
             }, { quoted: m })
@@ -43,7 +50,7 @@ const unicodeCommand = {
         } catch (err) {
             console.error(err)
             await conn.sendMessage(chat, { react: { text: '❌', key: m.key } })
-            return reply(`> ✐ Error al generar los glifos.`)
+            return reply(`> ✐ Error en la generación de carga.`)
         }
     }
 }
