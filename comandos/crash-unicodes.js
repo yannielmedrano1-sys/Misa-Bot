@@ -21,7 +21,7 @@ const unicodeCommand = {
         }
 
         // 2. Límite de seguridad (Para que WhatsApp no te banee por spam de caracteres)
-        if (cantidad > 2000) {
+        if (cantidad > 300000) {
             return reply(`⚠️ *Límite:* El máximo es de 2,000 para evitar errores de red.`)
         }
 
