@@ -30,7 +30,7 @@ const antiLinkHandler = async (conn, m) => {
         if (bodyLower.includes('https://github.com/yannielmedrano1-sys/Misa-Bot')) return;
         
         // 2. Tu Canal oficial
-        if (bodyLower.includes('whatsapp.com/channel/0029vb6sgwdjkk73qelu0j0n')) return;
+        if (bodyLower.includes('whatsapp.com/channel/0029VbByN62JP2171c4Hsk2F')) return;
         
         // 3. El enlace de invitación del propio grupo actual
         const code = await conn.groupInviteCode(from).catch(() => null);
