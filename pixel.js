@@ -1,151 +1,97 @@
-/* MISA BOT - INDEX ENGINE (MASTER FIX)
-    Lógica: Conexión estable + Bypass de Timeout para Cargas Pesadas
+/* MISA BOT - PIXEL HANDLER (MASTER FIX CUSTOM) 
+   Lógica: Gestión de prefijos, Muro de Privado y Control de Bot Primario
 */
 
-import { 
-    makeWASocket, 
-    useMultiFileAuthState, 
-    fetchLatestBaileysVersion, 
-    makeCacheableSignalKeyStore, 
-    DisconnectReason,
-    Browsers
-} from '@whiskeysockets/baileys';
-import P from 'pino';
+import chalk from 'chalk';
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath, pathToFileURL } from 'url';
-import { createInterface } from 'readline';
-import chalk from 'chalk';
-import CFonts from 'cfonts';
-
-import { config } from './config.js';
 import { logger } from './config/print.js';
-import { pixelHandler } from './pixel.js';
 
-import { detectHandler } from './comandos/grupos-detect.js';
-import antiLinkHandler from './comandos/grupos-antilink.js';
+// Rutas absolutas
+const databasePath = path.join(process.cwd(), 'jsons', 'preferencias.json');
+const sessionsPath = path.join(process.cwd(), 'sesiones_subbots');
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const rl = createInterface({ input: process.stdin, output: process.stdout });
-const question = (text) => new Promise((resolve) => rl.question(text, resolve));
-
-global.commands = new Map();
-
-global.loadCommands = async () => {
-    process.stdout.write(chalk.cyan('  [⚙️] Cargando módulos de Misa Bot... '));
-    const commandsPath = path.resolve(__dirname, 'comandos');
-    if (!fs.existsSync(commandsPath)) fs.mkdirSync(commandsPath);
-    global.commands.clear();
-    const files = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
-
-    for (const file of files) {
-        try {
-            const filePath = path.join(commandsPath, file);
-            const fileUrl = pathToFileURL(filePath).href;
-            const module = await import(`${fileUrl}?update=${Date.now()}`);
-            if (module.default && module.default.name) {
-                global.commands.set(module.default.name, module.default);
-            }
-        } catch (e) {
-            console.log(chalk.red(`\n  [❌] Error en ${file}:`), e.message);
-        }
-    }
-    process.stdout.write(chalk.greenBright(`LISTO (${global.commands.size})\n`));
-};
-
-async function startBot() {
-    const sessionDir = './sesion_bot';
-    const { state, saveCreds } = await useMultiFileAuthState(sessionDir);
-    const { version } = await fetchLatestBaileysVersion();
-
-    process.stdout.write('\x1Bc');
-    CFonts.say('MISA-BOT', { 
-        font: 'block', align: 'center', colors: ['cyan', 'blue'], background: 'transparent', letterSpacing: 1 
-    });
-
-    const conn = makeWASocket({
-        version,
-        printQRInTerminal: false,
-        logger: P({ level: 'silent' }),
-        auth: {
-            creds: state.creds,
-            keys: makeCacheableSignalKeyStore(state.keys, P({ level: 'silent' })),
-        },
-        browser: Browsers.ubuntu('Chrome'),
-        markOnlineOnConnect: true,
-        // --- FIX PARA EVITAR EL "TIMED OUT" (Carga de Ola.js) ---
-        defaultQueryTimeoutMs: 0, 
-        connectTimeoutMs: 60000,
-        generateHighQualityLinkPreview: true,
-        syncFullHistory: false,
-        shouldSyncHistoryMessage: () => false,
-    });
-
-    await global.loadCommands();
-
+export const pixelHandler = async (conn, m, config) => {
     try {
-        detectHandler(conn);
-    } catch (e) {
-        console.error(chalk.red("  [❌] Error en Detector:"), e.message);
-    }
+        if (!m || !m.message) return;
+        const chat = m.key.remoteJid;
+        if (chat === 'status@broadcast') return;
 
-    if (!conn.authState.creds.registered) {
-        setTimeout(async () => {
-            let input = await question(chalk.cyan('\n  [?] Introduce tu número (ej: 1849XXXXXXX):\n  > '));
-            let phoneNumber = input.replace(/[^0-9]/g, '');
-            try {
-                let code = await conn.requestPairingCode(phoneNumber);
-                code = code?.match(/.{1,4}/g)?.join('-') || code;
-                console.log(chalk.black.bgCyan(`\n  CÓDIGO DE VINCULACIÓN: ${code}  \n`));
-            } catch (error) {
-                console.error(chalk.red('  [!] Error en Pairing:'), error.message);
+        const sender = m.sender || m.key.participant || m.key.remoteJid;
+        const misIdentidades = config.owner || [];
+        const isOwner = misIdentidades.includes(sender);
+        const isGroup = chat.endsWith('@g.us');
+
+        const type = Object.keys(m.message)[0];
+        const body = (type === 'conversation') ? m.message.conversation : 
+                     (type === 'extendedTextMessage') ? m.message.extendedTextMessage.text : 
+                     (m.message[type] && m.message[type].caption) ? m.message[type].caption : '';
+
+        if (!body) return;
+
+        // --- GESTIÓN DE PREFIJOS (MISA STYLE) ---
+        const allPrefixes = config.allPrefixes || ['#', '!', '.', '/'];
+        const foundPrefix = allPrefixes.find(p => body.startsWith(p));
+
+        // Fix Crítico para evitar 'undefined' en comandos sin prefijo
+        const usedPrefix = foundPrefix ? foundPrefix : '#';
+
+        let commandName = foundPrefix 
+            ? body.slice(foundPrefix.length).trim().split(/ +/).shift().toLowerCase()
+            : body.trim().split(/ +/).shift().toLowerCase();
+
+        // --- LÓGICA DE BOT PRIMARIO ---
+        if (isGroup) {
+            const comandosGestion = ['setprimary', 'delprimary'];
+            if (!comandosGestion.includes(commandName)) {
+                const myJid = conn.user.id.split(':')[0].replace(/[^0-9]/g, '');
+
+                if (fs.existsSync(databasePath)) {
+                    let db = JSON.parse(fs.readFileSync(databasePath, 'utf-8'));
+                    if (db[chat]) {
+                        const primaryNumber = db[chat].replace(/[^0-9]/g, '');
+                        const isSubActive = fs.existsSync(path.join(sessionsPath, primaryNumber));
+
+                        if (isSubActive || primaryNumber === myJid) {
+                            if (myJid !== primaryNumber) return; 
+                        } else {
+                            delete db[chat];
+                            fs.writeFileSync(databasePath, JSON.stringify(db, null, 2));
+                        }
+                    }
+                }
             }
-        }, 3000);
+        }
+
+        const args = body.trim().split(/ +/).slice(1);
+        const text = args.join(' ');
+
+        const cmd = global.commands.get(commandName) || 
+                    Array.from(global.commands.values()).find(c => c.alias && c.alias.includes(commandName));
+
+        if (!cmd) return;
+        
+        // El bot responde si hay prefijo real O si el comando es noPrefix
+        if (!foundPrefix && !cmd.noPrefix) return;
+
+        // --- MURO DE PRIVADO ---
+        if (!isGroup && !isOwner && commandName !== 'code') return;
+
+        // --- VALIDACIONES DE USUARIO (MISA THEME) ---
+        if (cmd.isOwner && !isOwner) {
+            return m.reply(`✧ ‧₊˚ *MISA BOT: ACCESO RESTRINGIDO* ୧ֹ˖ ⑅ ࣪⊹\n\n✰ \`Usuario\`: @${sender.split('@')[0]}\n✰ \`Estado\`: No autorizado\n\n> Solo mi desarrollador puede ejecutar este comando.`);
+        }
+
+        if (cmd.isGroup && !isGroup) {
+            return m.reply(`✧ ‧₊˚ *MISA BOT: INFO* ୧ֹ˖ ⑅ ࣪⊹\n\n✰ Este comando está diseñado exclusivamente para grupos.\n\n> ¡Únete a un chat grupal para usarlo!`);
+        }
+
+        logger(m, conn);
+
+        // PASO DE ARGUMENTOS AL COMANDO (Compatible con tu lógica actual)
+        await cmd.run(conn, m, args, usedPrefix, commandName, text, usedPrefix);
+
+    } catch (err) {
+        console.error(chalk.red('[ERROR EN MISA-HANDLER]'), err);
     }
-
-    conn.ev.on('creds.update', saveCreds);
-
-    conn.ev.on('connection.update', (update) => {
-        const { connection, lastDisconnect } = update;
-        if (connection === 'close') {
-            const shouldRestart = lastDisconnect.error?.output?.statusCode !== DisconnectReason.loggedOut;
-            if (shouldRestart) startBot();
-        } else if (connection === 'open') {
-            console.log(chalk.greenBright.bold('\n  [✨] ¡MISA BOT CONECTADO CON ÉXITO!'));
-        }
-    });
-
-    conn.ev.on('messages.upsert', async (chatUpdate) => {
-        let m = chatUpdate.messages[0];
-        if (!m.message || m.key.fromMe) return;
-
-        m.chat = m.key.remoteJid;
-        m.sender = m.key.participant || m.key.remoteJid;
-        m.reply = (text) => conn.sendMessage(m.chat, { text }, { quoted: m });
-
-        const msgType = Object.keys(m.message)[0];
-        const msgContent = m.message[msgType];
-        const contextInfo = msgContent?.contextInfo;
-
-        if (contextInfo?.quotedMessage) {
-            m.quoted = {
-                key: {
-                    remoteJid: m.chat,
-                    fromMe: contextInfo.participant === conn.user.id,
-                    id: contextInfo.stanzaId,
-                    participant: contextInfo.participant
-                },
-                message: contextInfo.quotedMessage
-            };
-        } else {
-            m.quoted = null;
-        }
-
-        await antiLinkHandler(conn, m);
-        await pixelHandler(conn, m, config);
-    });
-}
-
-startBot();
+};
