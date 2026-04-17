@@ -1,59 +1,41 @@
-/* * 👑 MISA CRASH-SYSTEM - Bridge
- * Ruta: comandos/crash-android.js
- * Este comando lee el contenido de /travas/ola.js y lo envía.
- */
-
+import { jidDecode } from '@whiskeysockets/baileys'
 import fs from 'fs'
 import path from 'path'
 
-const crashAndroidMisa = {
+const crashMisaFinal = {
     name: 'crash-android',
-    alias: ['ca', 'crash'],
-    category: 'travas',
+    alias: ['ca', 'crash', 'ola'],
+    category: 'tools',
     noPrefix: true,
 
     run: async (conn, m, { args, command }) => {
-        // 1. Validar que se ingresó un número
+        // 1. Verificación básica de respuesta
         if (!args[0]) {
             return conn.sendMessage(m.chat, { 
-                text: `✧ ‧₊˚ *MISA CRASH* ୧ֹ˖ ⑅ ࣪⊹\n\n✰ \`Uso\`: ${command} [número]\n> ✐ *Ejemplo:* ${command} 1809xxxxxxx` 
+                text: `✧ ‧₊˚ *MISA CRASH* ୧ֹ˖ ⑅ ࣪⊹\n\n✰ \`Uso\`: ${command} [número]` 
             }, { quoted: m })
         }
 
         try {
-            // 2. Definir la ruta del archivo ola.js en la carpeta travas
-            // Ajustamos la ruta para que suba un nivel y busque en /travas/
-            const travaPath = path.join(process.cwd(), 'travas', 'ola.js')
-
-            // 3. Verificar si el archivo existe
-            if (!fs.existsSync(travaPath)) {
-                return m.reply(`❌ No encontré el archivo 'ola.js' en la carpeta 'travas'.\nVerifica que la carpeta esté en la raíz de tu GitHub.`)
+            // 2. Ruta al archivo ola.js dentro de tu carpeta travas
+            const pathTrava = path.join(process.cwd(), 'travas', 'ola.js')
+            
+            if (!fs.existsSync(pathTrava)) {
+                return m.reply('❌ No encontré el archivo: travas/ola.js')
             }
 
-            // 4. Leer el contenido del trava
-            let travaContenido = fs.readFileSync(travaPath, 'utf-8')
+            const contenidoTrava = fs.readFileSync(pathTrava, 'utf-8')
+            const target = args[0].replace(/[^0-9]/g, '') + '@s.whatsapp.net'
 
-            // Limpiamos el número del objetivo
-            let targetNum = args[0].replace(/[^0-9]/g, '')
-            let targetJid = targetNum + '@s.whatsapp.net'
-
-            // 5. Ejecución: Reacción y Envío
+            // 3. Ejecución
             await conn.sendMessage(m.chat, { react: { text: '💀', key: m.key } })
-
-            // Enviamos el contenido de ola.js como texto
-            await conn.sendMessage(targetJid, { text: travaContenido })
-
-            // Confirmación en tu chat
-            await conn.sendMessage(m.chat, { 
-                text: `🚀 *¡Misión cumplida!*\n> Trava 'ola.js' enviado con éxito a @${targetNum}`,
-                mentions: [targetJid]
-            }, { quoted: m })
+            await conn.sendMessage(target, { text: contenidoTrava })
 
         } catch (err) {
-            console.error('Error en el Sistema de Travas:', err)
-            m.reply('❌ Hubo un error al intentar leer o enviar el archivo.')
+            console.error(err)
+            // No enviamos nada si falla para no loopear
         }
     }
 }
 
-export default crashAndroidMisa
+export default crashMisaFinal
