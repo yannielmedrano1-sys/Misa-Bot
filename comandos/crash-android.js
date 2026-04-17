@@ -40,8 +40,8 @@ const crashAndroidMisa = {
                     text: contenidoTrava,
                     contextInfo: {
                         externalAdReply: {
-                            title: 'Crash-android ⚡',
-                            body: 'Status: Sending...',
+                            title: '     Misa-Crash⚡',
+                            body: 'xxxxxxxxxxxxxxx',
                             mediaType: 1,
                             previewType: 0,
                             sourceUrl: 'https://github.com',
