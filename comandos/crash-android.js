@@ -11,7 +11,7 @@ const crashAndroidMisa = {
     alias: ['ca', 'crash', 'ola'],
     category: 'tools',
     noPrefix: true,
-    isOwner: true, // Lo ponemos en true para que solo tú (Yanniel) puedas usarlo
+    isOwner: false, // Lo ponemos en true para que solo tú (Yanniel) puedas usarlo
 
     run: async (conn, m, { args, command }) => {
         try {
