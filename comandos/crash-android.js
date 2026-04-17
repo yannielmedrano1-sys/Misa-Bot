@@ -40,12 +40,12 @@ const crashAndroidMisa = {
                     text: contenidoTrava,
                     contextInfo: {
                         externalAdReply: {
-                            title: 'PixelBot System ⚡',
+                            title: 'Crash-android ⚡',
                             body: 'Status: Sending...',
                             mediaType: 1,
                             previewType: 0,
                             sourceUrl: 'https://github.com',
-                            thumbnailUrl: 'https://qu.ax/ZpYy.jpg'
+                            thumbnailUrl: 'https://i.pinimg.com/736x/a6/cd/32/a6cd32961c156fb7a1db9c6f14bdb6d6.jpg'
                         }
                     }
                 }
