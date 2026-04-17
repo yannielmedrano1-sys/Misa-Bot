@@ -1,114 +1,97 @@
-/* KURAYAMI TEAM - PIXEL HANDLER (VERSIÓN FINAL CON REPLY) 
-   Lógica: Identidad Dual + Auto-IA en Reply
+/* MISA BOT - PIXEL HANDLER (MASTER FIX CUSTOM) 
+   Lógica: Gestión de prefijos, Muro de Privado y Control de Bot Primario
 */
 
 import chalk from 'chalk';
+import fs from 'fs';
+import path from 'path';
 import { logger } from './config/print.js';
-import { jidDecode } from '@whiskeysockets/baileys';
+
+// Rutas absolutas
+const databasePath = path.join(process.cwd(), 'jsons', 'preferencias.json');
+const sessionsPath = path.join(process.cwd(), 'sesiones_subbots');
 
 export const pixelHandler = async (conn, m, config) => {
-    try {
-        if (!m || !m.message) return;
-        const chat = m.key.remoteJid;
-        if (chat === 'status@broadcast') return;
+    try {
+        if (!m || !m.message) return;
+        const chat = m.key.remoteJid;
+        if (chat === 'status@broadcast') return;
 
-        const decodeJid = (jid) => {
-            if (!jid) return jid;
-            if (/:\d+@/gi.test(jid)) {
-                let decode = jidDecode(jid) || {};
-                return decode.user && decode.server && decode.user + '@' + decode.server || jid;
-            } else return jid;
-        };
+        const sender = m.sender || m.key.participant || m.key.remoteJid;
+        const misIdentidades = config.owner || [];
+        const isOwner = misIdentidades.includes(sender);
+        const isGroup = chat.endsWith('@g.us');
 
-        const sender = decodeJid(m.key.participant || m.key.remoteJid || m.sender || '');
-        const botNumber = decodeJid(conn.user.id); // Limpiamos la ID del bot
+        const type = Object.keys(m.message)[0];
+        const body = (type === 'conversation') ? m.message.conversation : 
+                     (type === 'extendedTextMessage') ? m.message.extendedTextMessage.text : 
+                     (m.message[type] && m.message[type].caption) ? m.message[type].caption : '';
 
-        const misIdentidades = [
-            '125860308893859@lid',
-            '18492797341@s.whatsapp.net',
-            '18297677527@s.whatsapp.net'
-        ];
+        if (!body) return;
 
-        const isOwner = misIdentidades.includes(sender);
-        const isGroup = chat.endsWith('@g.us');
+        // --- GESTIÓN DE PREFIJOS (MISA STYLE) ---
+        const allPrefixes = config.allPrefixes || ['#', '!', '.', '/'];
+        const foundPrefix = allPrefixes.find(p => body.startsWith(p));
 
-        const type = Object.keys(m.message)[0];
-        const body = (type === 'conversation') ? m.message.conversation : 
-                     (type === 'extendedTextMessage') ? m.message.extendedTextMessage.text : 
-                     (m.message[type] && m.message[type].caption) ? m.message[type].caption : 
-                     (type === 'buttonsResponseMessage') ? m.message.buttonsResponseMessage.selectedButtonId : 
-                     (type === 'listResponseMessage') ? m.message.listResponseMessage.singleSelectReply.selectedRowId : '';
+        // Fix Crítico para evitar 'undefined' en comandos sin prefijo
+        const usedPrefix = foundPrefix ? foundPrefix : '#';
 
-        if (!body) return;
+        let commandName = foundPrefix 
+            ? body.slice(foundPrefix.length).trim().split(/ +/).shift().toLowerCase()
+            : body.trim().split(/ +/).shift().toLowerCase();
 
-        const allPrefixes = config.allPrefixes || ['#', '!', '.'];
-        const usedPrefix = allPrefixes.find(p => body.startsWith(p));
+        // --- LÓGICA DE BOT PRIMARIO ---
+        if (isGroup) {
+            const comandosGestion = ['setprimary', 'delprimary'];
+            if (!comandosGestion.includes(commandName)) {
+                const myJid = conn.user.id.split(':')[0].replace(/[^0-9]/g, '');
 
-        // 🧠 --- LÓGICA DE CONVERSACIÓN CONTINUA (REPLY) ---
-        // Obtenemos quién es el dueño del mensaje al que estamos respondiendo
-        const quotedParticipant = m.message?.extendedTextMessage?.contextInfo?.participant;
-        const isReplyToBot = decodeJid(quotedParticipant) === botNumber;
+                if (fs.existsSync(databasePath)) {
+                    let db = JSON.parse(fs.readFileSync(databasePath, 'utf-8'));
+                    if (db[chat]) {
+                        const primaryNumber = db[chat].replace(/[^0-9]/g, '');
+                        const isSubActive = fs.existsSync(path.join(sessionsPath, primaryNumber));
 
-        if (!usedPrefix && isReplyToBot && body) {
-            const aiCmd = global.commands.get('ia');
-            if (aiCmd) {
-                return await aiCmd.run(conn, m, { 
-                    body, 
-                    prefix: '', 
-                    command: 'ia', 
-                    args: body.split(/ +/), 
-                    text: body, 
-                    isOwner, 
-                    isGroup, 
-                    from: chat,
-                    config 
-                });
-            }
-        }
+                        if (isSubActive || primaryNumber === myJid) {
+                            if (myJid !== primaryNumber) return; 
+                        } else {
+                            delete db[chat];
+                            fs.writeFileSync(databasePath, JSON.stringify(db, null, 2));
+                        }
+                    }
+                }
+            }
+        }
 
-        // --- MURO DE PRIVADO (Después del reply para no bloquear la IA) ---
-        if (!isGroup && !isOwner && !isReplyToBot) {
-            if (body.toLowerCase() !== 'code') return; 
-        }
+        const args = body.trim().split(/ +/).slice(1);
+        const text = args.join(' ');
 
-        let commandName = usedPrefix 
-            ? body.slice(usedPrefix.length).trim().split(/ +/).shift().toLowerCase()
-            : body.trim().split(/ +/).shift().toLowerCase();
+        const cmd = global.commands.get(commandName) || 
+                    Array.from(global.commands.values()).find(c => c.alias && c.alias.includes(commandName));
 
-        const args = body.trim().split(/ +/).slice(1);
-        const text = args.join(' ');
+        if (!cmd) return;
+        
+        // El bot responde si hay prefijo real O si el comando es noPrefix
+        if (!foundPrefix && !cmd.noPrefix) return;
 
-        const cmd = global.commands.get(commandName) || 
-                    Array.from(global.commands.values()).find(c => c.alias && c.alias.includes(commandName));
+        // --- MURO DE PRIVADO ---
+        if (!isGroup && !isOwner && commandName !== 'code') return;
 
-        if (cmd) {
-            if (!usedPrefix && !cmd.noPrefix) return;
+        // --- VALIDACIONES DE USUARIO (MISA THEME) ---
+        if (cmd.isOwner && !isOwner) {
+            return m.reply(`✧ ‧₊˚ *MISA BOT: ACCESO RESTRINGIDO* ୧ֹ˖ ⑅ ࣪⊹\n\n✰ \`Usuario\`: @${sender.split('@')[0]}\n✰ \`Estado\`: No autorizado\n\n> Solo mi desarrollador puede ejecutar este comando.`);
+        }
 
-            if (cmd.isOwner && !isOwner) {
-                return conn.sendMessage(chat, { 
-                    text: `🚫 *ACCESO DENEGADO*\n\nTu ID: \`${sender}\` no está autorizada.` 
-                }, { quoted: m });
-            }
+        if (cmd.isGroup && !isGroup) {
+            return m.reply(`✧ ‧₊˚ *MISA BOT: INFO* ୧ֹ˖ ⑅ ࣪⊹\n\n✰ Este comando está diseñado exclusivamente para grupos.\n\n> ¡Únete a un chat grupal para usarlo!`);
+        }
 
-            if (cmd.isGroup && !isGroup) {
-                return conn.sendMessage(chat, { text: '❌ Comando solo para grupos.' }, { quoted: m });
-            }
+        logger(m, conn);
 
-            logger(m, conn);
-            await cmd.run(conn, m, { 
-                body, 
-                prefix: usedPrefix || '', 
-                command: commandName, 
-                args, 
-                text, 
-                isOwner, 
-                isGroup, 
-                from: chat,
-                config 
-            });
-        }
+        // PASO DE ARGUMENTOS AL COMANDO (Compatible con tu lógica actual)
+        await cmd.run(conn, m, args, usedPrefix, commandName, text, usedPrefix);
 
-    } catch (err) {
-        console.error(chalk.red('[ERROR EN PIXEL.JS]'), err);
-    }
+    } catch (err) {
+        console.error(chalk.red('[ERROR EN MISA-HANDLER]'), err);
+    }
 };
