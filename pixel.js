@@ -1,5 +1,5 @@
-/* MISA BOT - PIXEL HANDLER (MASTER FIX CUSTOM) 
-   Lógica: Gestión de prefijos, Muro de Privado y Control de Bot Primario
+/* MISA BOT - PIXEL HANDLER (MASTER FIX) 
+   Corrección: Inyección de m.reply para evitar TypeErrors
 */
 
 import chalk from 'chalk';
@@ -7,14 +7,20 @@ import fs from 'fs';
 import path from 'path';
 import { logger } from './config/print.js';
 
-// Rutas absolutas
 const databasePath = path.join(process.cwd(), 'jsons', 'preferencias.json');
 const sessionsPath = path.join(process.cwd(), 'sesiones_subbots');
 
 export const pixelHandler = async (conn, m, config) => {
     try {
         if (!m || !m.message) return;
+        
+        // --- FIX CRÍTICO: Definición de m.reply ---
         const chat = m.key.remoteJid;
+        m.reply = async (text) => {
+            return await conn.sendMessage(chat, { text: text }, { quoted: m });
+        };
+        // ------------------------------------------
+
         if (chat === 'status@broadcast') return;
 
         const sender = m.sender || m.key.participant || m.key.remoteJid;
@@ -29,11 +35,8 @@ export const pixelHandler = async (conn, m, config) => {
 
         if (!body) return;
 
-        // --- GESTIÓN DE PREFIJOS (MISA STYLE) ---
         const allPrefixes = config.allPrefixes || ['#', '!', '.', '/'];
         const foundPrefix = allPrefixes.find(p => body.startsWith(p));
-
-        // Fix Crítico para evitar 'undefined' en comandos sin prefijo
         const usedPrefix = foundPrefix ? foundPrefix : '#';
 
         let commandName = foundPrefix 
@@ -45,13 +48,11 @@ export const pixelHandler = async (conn, m, config) => {
             const comandosGestion = ['setprimary', 'delprimary'];
             if (!comandosGestion.includes(commandName)) {
                 const myJid = conn.user.id.split(':')[0].replace(/[^0-9]/g, '');
-
                 if (fs.existsSync(databasePath)) {
                     let db = JSON.parse(fs.readFileSync(databasePath, 'utf-8'));
                     if (db[chat]) {
                         const primaryNumber = db[chat].replace(/[^0-9]/g, '');
                         const isSubActive = fs.existsSync(path.join(sessionsPath, primaryNumber));
-
                         if (isSubActive || primaryNumber === myJid) {
                             if (myJid !== primaryNumber) return; 
                         } else {
@@ -70,28 +71,24 @@ export const pixelHandler = async (conn, m, config) => {
                     Array.from(global.commands.values()).find(c => c.alias && c.alias.includes(commandName));
 
         if (!cmd) return;
-        
-        // El bot responde si hay prefijo real O si el comando es noPrefix
         if (!foundPrefix && !cmd.noPrefix) return;
-
-        // --- MURO DE PRIVADO ---
         if (!isGroup && !isOwner && commandName !== 'code') return;
 
-        // --- VALIDACIONES DE USUARIO (MISA THEME) ---
+        // --- VALIDACIONES CON M.REPLY YA FUNCIONANDO ---
         if (cmd.isOwner && !isOwner) {
-            return m.reply(`✧ ‧₊˚ *MISA BOT: ACCESO RESTRINGIDO* ୧ֹ˖ ⑅ ࣪⊹\n\n✰ \`Usuario\`: @${sender.split('@')[0]}\n✰ \`Estado\`: No autorizado\n\n> Solo mi desarrollador puede ejecutar este comando.`);
+            return m.reply(`✧ ‧₊˚ *ACCESO DENEGADO* ୧ֹ˖\n\n> Solo mi desarrollador puede usar esto.`);
         }
 
         if (cmd.isGroup && !isGroup) {
-            return m.reply(`✧ ‧₊˚ *MISA BOT: INFO* ୧ֹ˖ ⑅ ࣪⊹\n\n✰ Este comando está diseñado exclusivamente para grupos.\n\n> ¡Únete a un chat grupal para usarlo!`);
+            return m.reply(`✧ ‧₊˚ *AVISO* ୧ֹ˖\n\n> Comando exclusivo para grupos.`);
         }
 
         logger(m, conn);
 
-        // PASO DE ARGUMENTOS AL COMANDO (Compatible con tu lógica actual)
+        // Ejecución del comando
         await cmd.run(conn, m, args, usedPrefix, commandName, text, usedPrefix);
 
     } catch (err) {
-        console.error(chalk.red('[ERROR EN MISA-HANDLER]'), err);
+        console.error(chalk.red('[ERROR PIXEL]'), err);
     }
 };
