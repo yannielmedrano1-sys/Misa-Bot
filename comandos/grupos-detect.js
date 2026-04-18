@@ -1,4 +1,6 @@
-/* KAZUMA MISTER BOT - EVENT DETECTOR (LOGIC) */
+/* MISA BOT - EVENT DETECTOR (LOGIC FIX)
+   Lógica: Notificaciones de cambios en tiempo real (Admins, Nombre, Foto)
+*/
 import fs from 'fs';
 import path from 'path';
 
@@ -20,9 +22,9 @@ export const detectHandler = async (conn) => {
                 let aviso = '';
 
                 if (action === 'promote') {
-                    aviso = `*✿︎* \`Nuevo Administrador\` *✿︎*\n\nEl usuario *@${phone}* ha sido promovido a Administrador por *@${actor}*.\n\n> ¡Felicidades por el nuevo cargo!`;
+                    aviso = `✧ ‧₊˚ *MISA DETECTOR: ASCENSO* ୧ֹ˖\n\n✰ @${phone} ha sido promovido a *Administrador*.\n✰ Autor: @${actor}\n\n> ¡Felicidades por el nuevo cargo en el grupo!`;
                 } else if (action === 'demote') {
-                    aviso = `*❁* \`Remoción de Cargo\` *❁*\n\nEl usuario *@${phone}* fue degradado de su cargo por *@${actor}*.\n\n> ¡Seguimos trabajando!`;
+                    aviso = `✧ ‧₊˚ *MISA DETECTOR: DEGRADO* ୧ֹ˖\n\n✰ @${phone} ha sido removido de su cargo.\n✰ Autor: @${actor}\n\n> El sistema ha actualizado los permisos.`;
                 }
 
                 if (aviso) {
@@ -33,11 +35,11 @@ export const detectHandler = async (conn) => {
                 }
             }
         } catch (e) {
-            console.error("Error en Detect Participantes:", e);
+            console.error("[ERROR DETECT PARTICIPANTES]:", e);
         }
     });
 
-    // --- EVENTO: CAMBIOS EN AJUSTES DEL GRUPO (NOMBRE/FOTO) ---
+    // --- EVENTO: CAMBIOS EN AJUSTES DEL GRUPO (NOMBRE/FOTO/DESCRIPCIÓN) ---
     conn.ev.on('messages.upsert', async ({ messages }) => {
         try {
             const m = messages[0];
@@ -52,23 +54,24 @@ export const detectHandler = async (conn) => {
             const phone = actor.split('@')[0];
             let cambio = '';
 
-            // Mapeo de StubTypes de Baileys
-            if (m.messageStubType == 21) cambio = `cambió el nombre a: *${m.messageStubParameters[0]}*`;
-            if (m.messageStubType == 22) cambio = `actualizó la foto del grupo.`;
+            // Mapeo de StubTypes de Baileys (Eventos de sistema)
+            if (m.messageStubType == 21) cambio = `cambió el nombre del grupo a:\n> *${m.messageStubParameters[0]}*`;
+            if (m.messageStubType == 22) cambio = `actualizó la imagen de perfil del grupo.`;
             if (m.messageStubType == 24) cambio = `editó la descripción del grupo.`;
             if (m.messageStubType == 25) cambio = `cambió los permisos de edición a: *${m.messageStubParameters[0] == 'on' ? 'Solo Admins' : 'Todos'}*`;
+            if (m.messageStubType == 26) cambio = `cerró el grupo. (Solo Admins pueden enviar mensajes)`;
+            if (m.messageStubType == 27) cambio = `abrió el grupo. (Todos pueden enviar mensajes)`;
 
             if (cambio) {
                 await conn.sendMessage(chat, { 
-                    text: `*✿︎* \`Aviso de Grupo\` *✿︎*\n\n*@${phone}* ${cambio}\n\n> Kazuma detectó el cambio.`,
+                    text: `✧ ‧₊˚ *MISA DETECTOR: AJUSTES* ୧ֹ˖\n\n✰ @${phone} ${cambio}\n\n> Cambio detectado y registrado.`,
                     mentions: [actor]
                 });
             }
         } catch (e) {
-            console.error("Error en Detect Stub:", e);
+            console.error("[ERROR DETECT STUB]:", e);
         }
     });
 };
 
-// Export por defecto para compatibilidad
 export default detectHandler;
